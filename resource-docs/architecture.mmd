@@ -1,0 +1,62 @@
+flowchart LR
+  subgraph U[Users]
+    D[Development Staff]
+    M[Marketing and Comms]
+    A[Admin and DBA]
+  end
+
+  subgraph F[Frontend (Web App)]
+    UI["Dashboard<br/>Donor Profiles<br/>Segments<br/>Workflows<br/>Tasks"]
+  end
+
+  subgraph B[Backend (Core API)]
+    API["REST and GraphQL API<br/>RBAC, Business Logic, Audit"]
+  end
+
+  subgraph DL[Data Layer]
+    PG[(Postgres<br/>Operational DB)]
+  end
+
+  subgraph AO[Async Orchestration]
+    Q["Job Queue and Worker<br/>Syncs, Scoring, Workflow steps"]
+    S["Scheduler<br/>Cron and timed triggers"]
+  end
+
+  subgraph INT[Integrations Layer]
+    CRM["CRM Connector<br/>Salesforce NPSP, Bloomerang, etc."]
+    ESP["Email Provider Connector<br/>SendGrid, SES, Postmark"]
+    PAY["Payments and Donations Connector<br/>Stripe, Classy, PayPal"]
+  end
+
+  subgraph EXT[External Services]
+    AUTH["Auth Provider<br/>Auth0, Clerk, Cognito"]
+    EMAIL[Transactional Email Service]
+    CRM_SYS[(CRM Platform)]
+    PAY_SYS[(Donation and Payment Platform)]
+  end
+
+  D --> UI
+  M --> UI
+  A --> UI
+
+  UI -->|HTTPS| API
+  API --> PG
+
+  API -->|enqueue jobs| Q
+  S -->|triggers| Q
+  Q --> PG
+
+  Q -->|sync| CRM
+  Q -->|send| ESP
+  Q -->|sync| PAY
+
+  CRM --> CRM_SYS
+  ESP --> EMAIL
+  PAY --> PAY_SYS
+
+  UI -->|SSO or OAuth| AUTH
+  API -->|verify tokens| AUTH
+
+  EMAIL -->|webhooks: delivery/open/click| API
+  CRM_SYS -->|optional webhooks| API
+  PAY_SYS -->|optional webhooks| API

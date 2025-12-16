@@ -1,0 +1,21 @@
+/src
+  /components
+    /onboarding
+    /explore
+  /lib
+    /api
+    /validation
+  /hooks
+  /pages or /app
+  /__tests__
+    /components
+      /onboarding
+      /explore
+    /hooks
+    /api
+/tests
+  /e2e
+    onboarding.spec.ts
+    explore.spec.ts
+vitest.config.ts
+playwright.config.ts

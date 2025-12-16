@@ -1,0 +1,368 @@
+// DonorConnect Database Schema
+// Complete schema for MVP implementation
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  ADMIN
+  STAFF
+  MARKETING
+  READONLY
+}
+
+enum DonorStatus {
+  ACTIVE
+  LAPSED
+  INACTIVE
+  DO_NOT_CONTACT
+}
+
+enum RetentionRisk {
+  UNKNOWN
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DonationType {
+  ONE_TIME
+  RECURRING
+  PLEDGE
+  IN_KIND
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum WorkflowTrigger {
+  FIRST_DONATION
+  DONATION_RECEIVED
+  INACTIVITY_THRESHOLD
+  SEGMENT_ENTRY
+  MANUAL
+  SCHEDULED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum InteractionType {
+  EMAIL
+  PHONE_CALL
+  MEETING
+  NOTE
+}
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users     User[]
+  donors    Donor[]
+  campaigns Campaign[]
+  segments  Segment[]
+  workflows Workflow[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  password       String // bcrypt hashed
+  firstName      String
+  lastName       String
+  role           UserRole @default(STAFF)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions           Session[]
+  assignedTasks      Task[]
+  activityLogs       ActivityLog[]
+  workflowExecutions WorkflowExecution[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Donor {
+  id             String        @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  zipCode        String?
+  status         DonorStatus   @default(ACTIVE)
+  retentionRisk  RetentionRisk @default(UNKNOWN)
+
+  // Metrics (calculated from donations)
+  totalGifts    Int       @default(0)
+  totalAmount   Float     @default(0)
+  firstGiftDate DateTime?
+  lastGiftDate  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  donations      Donation[]
+  interactions   Interaction[]
+  tasks          Task[]
+  segmentMembers SegmentMember[]
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([retentionRisk])
+  @@index([status])
+  @@map("donors")
+}
+
+model Campaign {
+  id             String         @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  goal           Float?
+  startDate      DateTime?
+  endDate        DateTime?
+  type           String? // e.g., "Annual Fund", "Major Gifts", "Capital"
+  status         CampaignStatus @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  // Relations
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  donations    Donation[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("campaigns")
+}
+
+model Donation {
+  id         String       @id @default(cuid())
+  donorId    String
+  campaignId String?
+  amount     Float
+  date       DateTime
+  type       DonationType @default(ONE_TIME)
+  method     String? // e.g., "Credit Card", "Check", "Wire"
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  // Relations
+  donor    Donor     @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([campaignId])
+  @@index([date])
+  @@map("donations")
+}
+
+model Interaction {
+  id          String          @id @default(cuid())
+  donorId     String
+  type        InteractionType
+  subject     String?
+  notes       String?
+  date        DateTime
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  // Relations
+  donor Donor @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@index([donorId])
+  @@index([date])
+  @@map("interactions")
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  donorId     String?
+  assignedTo  String?
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  donor        Donor? @relation(fields: [donorId], references: [id], onDelete: Cascade)
+  assignedUser User?  @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@index([donorId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([dueDate])
+  @@map("tasks")
+}
+
+// ============================================================================
+// SEGMENTATION & WORKFLOWS
+// ============================================================================
+
+model Segment {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  rules          Json // JSON structure for segment rules
+  memberCount    Int       @default(0)
+  lastCalculated DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      SegmentMember[]
+  workflows    Workflow[]
+
+  @@index([organizationId])
+  @@map("segments")
+}
+
+model SegmentMember {
+  id        String   @id @default(cuid())
+  segmentId String
+  donorId   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  donor   Donor   @relation(fields: [donorId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, donorId])
+  @@index([segmentId])
+  @@index([donorId])
+  @@map("segment_members")
+}
+
+model Workflow {
+  id             String          @id @default(cuid())
+  organizationId String
+  segmentId      String?
+  name           String
+  description    String?
+  trigger        WorkflowTrigger
+  steps          Json // JSON array of workflow steps
+  isActive       Boolean         @default(false)
+  executionCount Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segment      Segment?            @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  executions   WorkflowExecution[]
+
+  @@index([organizationId])
+  @@index([segmentId])
+  @@index([isActive])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id           String    @id @default(cuid())
+  workflowId   String
+  executedById String?
+  status       String // "pending", "running", "completed", "failed"
+  progress     Json? // Current step, data, etc.
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  error        String?
+
+  // Relations
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executedBy User?    @relation(fields: [executedById], references: [id], onDelete: SetNull)
+
+  @@index([workflowId])
+  @@index([status])
+  @@map("workflow_executions")
+}
+
+// ============================================================================
+// AUDIT & LOGGING
+// ============================================================================
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String // e.g., "donor.created", "donation.updated"
+  entity    String // e.g., "donor", "campaign"
+  entityId  String
+  changes   Json? // Before/after values
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

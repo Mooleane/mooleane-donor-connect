@@ -1,0 +1,37 @@
+flowchart LR
+  subgraph F[Frontend]
+    UI[Web App]
+  end
+
+  subgraph B[Backend]
+    API[Core API]
+  end
+
+  subgraph DL[Data Layer]
+    PG[(Postgres OLTP)]
+    WH[(Warehouse OLAP\nBigQuery/Snowflake/Redshift)]
+  end
+
+  subgraph AO[Orchestration]
+    Q[Workers/Queue]
+    ETL[ETL/ELT\n(Airbyte/Fivetran/custom)]
+  end
+
+  subgraph ANA[Analytics/AI]
+    SCORE[Scoring Service\nRisk/Propensity/Recommendations]
+    BI[BI Tool\nLooker/Metabase/Tableau]
+  end
+
+  UI --> API
+  API --> PG
+  API --> Q
+
+  Q --> PG
+  Q --> ETL
+  ETL --> WH
+
+  WH --> SCORE
+  SCORE --> PG
+
+  WH --> BI
+  BI --> UI

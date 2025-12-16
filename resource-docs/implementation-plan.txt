@@ -1,0 +1,772 @@
+# DonorConnect Implementation Plan
+
+## Overview
+
+Build a donor retention platform MVP using Next.js 14, PostgreSQL/Prisma, and shadcn/ui. **Focus**: first-to-second gift conversion problem for nonprofits. **Scope**: Standard MVP (Option B minus email integration)
+
+- Core donor management + dashboard + authentication
+- Workflows + segmentation + task management
+- No CRM integration (MVP)
+- No email integration (MVP)
+
+## Technology Stack
+
+- Next.js 14 (App Router) + No TypeScript
+- PostgreSQL + Prisma ORM
+- Simple email/password auth (bcrypt + sessions)
+- shadcn/ui + Tailwind CSS
+- Vitest + Playwright testing
+- pnpm package manager
+
+## Required API Endpoints
+
+- ✅ GET `/api/donors`
+- ✅ POST `/api/donors`
+- ✅ PATCH `/api/donors/[id]`
+- ✅ DELETE `/api/donors/[id]`
+- ✅ GET `/api/campaigns`
+- ✅ POST `/api/campaigns`
+- ✅ GET `/api/donations`
+- ✅ POST `/api/donations`
+
+## Implementation Phases
+### Phase 1: Foundation (Days 1-3)
+
+### Initialize project structure and core infrastructure
+
+Project Setup
+
+pnpm create next-app@latest . --tailwind --app --src-dir
+cd donorConnect
+Database Setup
+Install Prisma: pnpm add -D prisma && pnpm add @prisma/client
+Create complete Prisma schema (see schema below)
+Set up PostgreSQL connection
+Run migrations: npx prisma migrate dev --name init
+Create comprehensive seed data: prisma/seed.ts
+Seed database: npx prisma db seed
+Testing Infrastructure
+Install Vitest: pnpm add -D vitest @vitejs/plugin-react jsdom
+Install RTL: pnpm add -D @testing-library/react @testing-library/jest-dom @testing-library/user-event
+Install MSW: pnpm add -D msw
+Create vitest.config.ts with JSDOM environment
+Create tests/setup.client.ts with MSW lifecycle
+Install Playwright: pnpm create playwright
+Create playwright.config.ts
+shadcn/ui Setup
+npx shadcn-ui@latest init
+npx shadcn-ui@latest add button card dialog form input label select table tabs toast dropdown-menu avatar badge checkbox textarea calendar popover separator skeleton alert progress sheet
+Key Files:
+prisma/schema.prisma - Complete database schema
+prisma/seed.ts - Seed 50+ donors, 200+ donations, campaigns, segments, workflows
+vitest.config.ts - Test configuration
+tests/setup.client.ts - MSW setup
+playwright.config.ts - E2E config
+### Phase 2: Authentication (Days 4-5)
+
+Implement secure email/password authentication
+
+#### Core Auth Infrastructure
+
+- Install bcrypt: `pnpm add bcryptjs && pnpm add -D @types/bcryptjs`
+- Create `src/lib/db.ts` - Prisma client singleton
+- Create `src/lib/password.ts` - Password hashing (bcrypt, 12 rounds)
+- Create `src/lib/session.ts` - Session management with cookies
+- Create `src/lib/auth.ts` - Auth utilities
+
+#### Auth API Routes
+
+- `src/app/api/auth/register/route.ts` - User registration
+- `src/app/api/auth/login/route.ts` - Login with password verification
+- `src/app/api/auth/logout/route.ts` - Session deletion
+- `src/app/api/auth/session/route.ts` - Get current user
+- Add `@vitest-environment node` to each route test
+
+#### Route Protection
+
+- Create `src/middleware.ts` - Protect dashboard routes, redirect auth routes
+- Configure matcher for all routes except static files
+
+#### Auth UI
+
+- Create `src/app/(auth)/layout.tsx` - Auth layout
+- Create `src/app/(auth)/login/page.tsx` - Login form
+- Create `src/app/(auth)/register/page.tsx` - Register form
+- Write E2E tests: `tests/e2e/auth.spec.ts`
+
+#### Key Files:
+
+- `src/lib/session.ts` - Session creation, retrieval, deletion with HTTP-only cookies
+- `src/middleware.ts` - Route protection (critical for security)
+- `src/app/api/auth/login/route.ts` - Login endpoint pattern
+### Phase 3: Core API Routes (Days 6-10)
+
+Implement all required API endpoints with validation and business logic
+
+#### Donors API (Days 6-7)
+
+**Validation & Business Logic**
+
+- Create `src/lib/validation/donor-schema.ts` - Zod schemas (create, update)
+- Create `src/lib/api/donors.ts` - Business logic:
+  - `getDonors()` - Pagination, search, filters (status, risk)
+  - `getDonor()` - Single donor with donations, interactions, tasks
+  - `createDonor()` - Create with organization scope
+  - `updateDonor()` - Update with organization check
+  - `deleteDonor()` - Delete with organization check
+
+**API Routes**
+
+- `src/app/api/donors/route.ts`:
+  - GET - List with query params (page, limit, search, status, risk)
+  - POST - Create with validation
+- `src/app/api/donors/[id]/route.ts`:
+  - GET - Single donor detail
+  - PATCH - Update donor
+  - DELETE - Delete donor (RBAC check)
+
+**Testing**
+
+- Unit tests for each route (Node environment)
+- MSW handlers: `tests/handlers/donors.ts`
+- Mock donor data for client tests
+#### Campaigns API (Day 8)
+
+**Validation & Business Logic**
+
+- Create `src/lib/validation/campaign-schema.ts`
+- Create `src/lib/api/campaigns.ts` - CRUD operations
+
+**API Routes**
+
+- `src/app/api/campaigns/route.ts` - GET (list), POST (create)
+- `src/app/api/campaigns/[id]/route.ts` - GET, PATCH, DELETE
+
+**Testing**
+
+- Unit tests + MSW handlers
+#### Donations API (Day 9)
+
+**Validation & Business Logic**
+
+- Create `src/lib/validation/donation-schema.ts`
+- Create `src/lib/api/donations.ts` - CRUD with donor metric updates
+- **Critical**: Update `donor.totalGifts`, `totalAmount`, `firstGiftDate`, `lastGiftDate` on create
+
+**API Routes**
+
+- `src/app/api/donations/route.ts` - GET (list with filters), POST (create)
+- `src/app/api/donations/[id]/route.ts` - GET, PATCH, DELETE
+
+**Testing**
+
+- Unit tests + MSW handlers
+- Test donor metric calculations
+#### Segments, Workflows, Tasks APIs (Day 10)
+
+**Basic CRUD Implementation**
+
+- Create validation schemas for each
+- Create business logic files
+- Create API routes (list, create, get, update, delete)
+- Create MSW handlers
+
+#### Key Files:
+
+- `src/app/api/donors/route.ts` - Reference pattern for all APIs
+- `src/lib/api/donors.ts` - Business logic separation pattern
+- `src/lib/validation/donor-schema.ts` - Zod validation pattern
+### Phase 4: Dashboard & Donor Management UI (Days 11-15)
+
+Build core user-facing pages with shadcn/ui components
+
+#### Dashboard Layout (Day 11)
+
+**Main Layout**
+
+- Create `src/app/(dashboard)/layout.tsx` - Main wrapper
+- Create `src/components/layout/header.tsx` - Top nav with user menu
+- Create `src/components/layout/sidebar.tsx` - Side navigation
+- Create `src/components/layout/nav.tsx` - Nav links with active states
+- Create `src/components/layout/user-menu.tsx` - Dropdown with logout
+
+**Styling**
+
+- Responsive layout (mobile, tablet, desktop)
+- Tailwind classes for consistent spacing
+- Dark mode ready (optional)
+#### Dashboard Page (Day 12)
+
+**Main Dashboard**
+
+- Create `src/app/(dashboard)/page.tsx`
+- Create `src/components/dashboard/dashboard-stats.tsx` - Metric cards (total donors, at-risk, retention rate)
+- Create `src/components/dashboard/retention-chart.tsx` - Chart with dummy data
+- Create `src/components/dashboard/recent-donors.tsx` - Recent donor table
+- Create `src/components/dashboard/at-risk-donors.tsx` - Alert list
+
+**Data Fetching**
+
+- Server components for initial data
+- Client components for interactive elements
+- Use React Suspense for loading states
+
+**Testing**
+
+- Component tests for each widget
+- E2E test: `tests/e2e/dashboard.spec.ts`
+#### Donor List Page (Day 13)
+
+**List Page**
+
+- Create `src/app/(dashboard)/donors/page.tsx`
+- Create `src/components/donors/donor-list.tsx` - Table with shadcn Table
+- Create `src/hooks/use-donors.ts` - Data fetching hook
+
+**Features**
+
+- Search input (firstName, lastName, email)
+- Status filter dropdown
+- Risk filter dropdown
+- Pagination controls
+- Sort by columns
+- Link to donor detail
+
+**Testing**
+
+- Component tests with MSW
+- E2E test: Filter, search, pagination flows
+#### Donor Detail Page (Day 14)
+
+**Detail Page**
+
+- Create `src/app/(dashboard)/donors/[id]/page.tsx`
+- Create `src/components/donors/donor-profile.tsx` - Profile header
+- Create `src/components/donors/donor-stats.tsx` - Donor metrics
+- Create `src/components/donations/donation-timeline.tsx` - Gift history
+
+**Layout**
+
+- Tabs: Overview, Donations, Interactions, Tasks
+- Display retention risk badge
+- Show related campaign data
+- Action buttons (edit, delete)
+
+**Testing**
+
+- Component tests
+- E2E test: Navigate to detail, verify data
+#### Donor Form Pages (Day 15)
+
+**Create/Edit Forms**
+
+- Create `src/app/(dashboard)/donors/new/page.tsx`
+- Create `src/app/(dashboard)/donors/[id]/edit/page.tsx`
+- Create `src/components/donors/donor-form.tsx` - Reusable form
+
+**Form Implementation**
+
+- React Hook Form + Zod resolver
+- shadcn Form components
+- Field validation with error messages
+- Submit handlers with API calls
+- Success/error toast notifications
+
+**Testing**
+
+- Form validation tests
+- E2E tests: Create, edit, validation errors
+
+#### Key Files:
+
+- `src/app/(dashboard)/layout.tsx` - Sets UI structure for entire app
+- `src/app/(dashboard)/donors/page.tsx` - List page pattern for all entities
+- `src/components/donors/donor-form.tsx` - Form pattern with React Hook Form + Zod
+### Phase 5: Campaign & Donation Management (Days 16-18)
+
+Build campaign and donation interfaces
+
+#### Campaign Pages (Day 16)
+
+**Campaign List**
+
+- Create `src/app/(dashboard)/campaigns/page.tsx`
+- Create `src/components/campaigns/campaign-list.tsx` - Card grid
+- Create `src/components/campaigns/campaign-card.tsx` - Single card
+- Display goal progress bars
+- Filter by status
+
+**Campaign Detail**
+
+- Create `src/app/(dashboard)/campaigns/[id]/page.tsx`
+- Show campaign metrics (total raised, donor count)
+- List campaign donations
+- Edit button
+
+**Campaign Form**
+
+- Create `src/app/(dashboard)/campaigns/new/page.tsx`
+- Create `src/components/campaigns/campaign-form.tsx`
+- Fields: name, description, goal, startDate, endDate, type, status
+
+**Testing**
+
+- Component tests + E2E tests
+#### Donation Pages (Days 17-18)
+
+**Donation List**
+
+- Create `src/app/(dashboard)/donations/page.tsx`
+- Create `src/components/donations/donation-list.tsx` - Table
+- Filters: date range, donor, campaign, amount range
+- Export functionality (future)
+
+**Record Donation Form**
+
+- Create `src/app/(dashboard)/donations/new/page.tsx`
+- Create `src/components/donations/donation-form.tsx`
+- Fields: donor (searchable select), amount, date, campaign, payment method
+- Auto-update donor metrics on submit
+
+**Testing**
+
+- Component tests + E2E tests
+- Test donor metric updates
+
+#### Key Files:
+
+- `src/app/(dashboard)/campaigns/page.tsx`
+- `src/app/(dashboard)/donations/page.tsx`
+- `src/components/donations/donation-form.tsx`
+### Phase 6: Segments & Workflows (Days 19-22)
+
+Build segmentation and workflow interfaces
+
+#### Segments (Days 19-20)
+
+**Segment List**
+
+- Create `src/app/(dashboard)/segments/page.tsx`
+- Create `src/components/segments/segment-list.tsx`
+- Show member count, last calculated date
+
+**Segment Detail**
+
+- Create `src/app/(dashboard)/segments/[id]/page.tsx`
+- Display segment rules (JSON formatted)
+- List segment members with donor links
+- Recalculate button
+
+**Segment Builder**
+
+- Create `src/app/(dashboard)/segments/new/page.tsx`
+- Create `src/components/segments/segment-builder.tsx`
+- Visual rule builder:
+  - Field select (totalGifts, totalAmount, retentionRisk, etc.)
+  - Operator select (equals, greaterThan, lessThan, etc.)
+  - Value input
+  - Add/remove conditions
+  - Preview member count
+
+**Testing**
+
+- Component tests for rule builder
+- E2E tests: Create segment, verify members
+#### Workflows (Days 21-22)
+
+**Workflow List**
+
+- Create `src/app/(dashboard)/workflows/page.tsx`
+- Create `src/components/workflows/workflow-list.tsx`
+- Show trigger type, active status, execution count
+
+**Workflow Detail**
+
+- Create `src/app/(dashboard)/workflows/[id]/page.tsx`
+- Display workflow steps (JSON formatted)
+- Show execution history
+- Activate/deactivate toggle
+
+**Workflow Builder**
+
+- Create `src/app/(dashboard)/workflows/new/page.tsx`
+- Create `src/components/workflows/workflow-builder.tsx`
+- Create `src/components/workflows/workflow-step-editor.tsx`
+- Trigger selection (FIRST_DONATION, DONATION_RECEIVED, etc.)
+- Step editor:
+  - Step type (email, task, wait)
+  - Delay configuration
+  - Conditions
+  - Add/remove/reorder steps
+
+**Testing**
+
+- Component tests for builder
+- E2E tests: Create workflow, verify steps
+
+#### Key Files:
+
+- `src/components/segments/segment-builder.tsx` - Rule builder pattern
+- `src/components/workflows/workflow-builder.tsx` - Visual editor pattern
+### Phase 7: Task Management (Day 23)
+
+Build task management interface
+
+#### Task List Page
+
+- Create `src/app/(dashboard)/tasks/page.tsx`
+- Create `src/components/tasks/task-list.tsx` - Table/card view toggle
+- Create `src/components/tasks/task-card.tsx` - Single task card
+- Create `src/components/tasks/task-form.tsx` - Inline quick-add form
+
+**Features**
+
+- Filter by: assignedTo, status, priority, dueDate
+- Quick status update (todo → in progress → completed)
+- Quick assignment
+- Sort by due date, priority
+- Link to related donor
+
+**Task Actions**
+
+- Mark complete
+- Change priority
+- Reassign
+- Edit details in dialog
+
+**Testing**
+
+- Component tests
+- E2E tests: Filter, complete task, create task
+
+#### Key Files:
+
+- `src/app/(dashboard)/tasks/page.tsx`
+- `src/components/tasks/task-list.tsx`
+### Phase 8: Polish & Testing (Days 24-25)
+
+Final integration, polish, and comprehensive testing
+
+#### Integration Testing
+
+- Run full E2E test suite across all pages
+- Test complete user journeys:
+  - Register → Login → Create donor → Record donation → Create segment → Create workflow → Create task
+- Fix any integration issues
+- Test with realistic seed data volumes
+
+#### UI Polish
+
+- Add loading states (Skeleton components)
+- Add error states (Alert components)
+- Add empty states (EmptyState component)
+- Toast notifications for all actions
+- Confirm dialogs for destructive actions (delete)
+- Improve responsive design for mobile
+- Accessibility audit (ARIA labels, keyboard navigation)
+
+#### Performance
+
+- Review bundle size
+- Optimize database queries with proper indexes
+- Add database indexes to frequently queried fields
+- Test with 1000+ donors to verify performance
+- Lazy load heavy components
+- Optimize images
+
+#### Error Handling
+
+- Consistent error responses from APIs
+- User-friendly error messages
+- Error boundary components
+- Sentry integration (optional)
+
+#### Documentation
+
+Update README with:
+
+- Setup instructions
+- Environment variables
+- Database setup
+- Seed data info
+- Run commands
+- API endpoint documentation
+- Deployment guide (Vercel + Supabase/Railway)
+- Basic user guide
+
+#### Key Deliverables:
+
+- ✅ Production-ready MVP
+- ✅ Full test coverage (unit + E2E)
+- ✅ Complete documentation
+- ✅ Deployment ready
+## Critical Implementation Details
+
+### Prisma Schema Structure
+
+Key entities with relationships:
+
+- **User** (email/password auth, role, organization)
+  - ↓ has many
+- **Session** (token-based, 7-day expiration)
+
+- **Organization** (multi-tenancy)
+  - ↓ has many
+- **Donor** (full contact info, retention metrics)
+  - ↓ has many
+  - **Donation** (amount, date, campaign link)
+  - **Interaction** (emails, calls, meetings)
+  - **SegmentMember** (many-to-many with Segment)
+  - **Task** (assignment, status, priority)
+
+- **Campaign** (goal, dates, status)
+  - ↓ has many
+  - **Donation**
+
+- **Segment** (rules as JSON, member count)
+  - ↓ has many
+  - **SegmentMember**
+  - ↓ triggers
+- **Workflow** (trigger, steps as JSON)
+  - ↓ has many
+  - **WorkflowExecution** (status, progress)
+
+- **Task** (assignedTo, donor, type, priority)
+- **ActivityLog** (audit trail)
+#### Enums:
+
+- `DonorStatus`: ACTIVE, LAPSED, INACTIVE, DO_NOT_CONTACT
+- `RetentionRisk`: UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL
+- `DonationType`: ONE_TIME, RECURRING, PLEDGE, IN_KIND
+- `CampaignStatus`: DRAFT, ACTIVE, COMPLETED, ARCHIVED
+- `WorkflowTrigger`: FIRST_DONATION, DONATION_RECEIVED, INACTIVITY_THRESHOLD, SEGMENT_ENTRY, MANUAL, SCHEDULED
+- `TaskStatus`: TODO, IN_PROGRESS, COMPLETED, CANCELLED
+- `UserRole`: ADMIN, STAFF, MARKETING, READONLY
+### Seed Data Requirements
+
+Generate realistic test data:
+
+- 2 Organizations
+- 5 Users per org (1 admin, 2 staff, 1 marketing, 1 readonly)
+- 50-100 Donors with varied profiles:
+  - 40% first-time (no second gift, 60+ days) → HIGH retention risk
+  - 30% two-gift donors → MEDIUM risk
+  - 20% loyal (3+ gifts) → LOW risk
+  - 10% lapsed (12+ months) → CRITICAL risk
+- 5-8 Campaigns (various dates, goals, statuses)
+- 200-300 Donations distributed realistically
+- 5-7 Segments with pre-calculated members
+- 3-5 Workflows with defined triggers/steps
+- 10-15 Tasks (mix of statuses, priorities, assignments)
+- 100-150 Interactions (emails, calls, meetings)
+### Authentication Security
+
+Session-based auth pattern:
+
+```javascript
+// Create session on login
+const token = crypto.randomUUID();
+await prisma.session.create({
+  data: {
+    userId,
+    token,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  }
+});
+
+// Set HTTP-only cookie
+cookies().set('session', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60,
+  path: '/'
+});
+
+// Validate on every request (middleware)
+const token = request.cookies.get('session')?.value;
+const session = await prisma.session.findUnique({
+  where: { token },
+  include: { user: true }
+});
+if (!session || session.expiresAt < new Date()) {
+  return redirect('/login');
+}
+```
+
+### API Route Pattern
+
+Consistent structure for all endpoints:
+
+1. Get session token from cookie
+2. Validate user authentication
+3. Parse request body/params
+4. Validate with Zod schema
+5. Call business logic function
+6. Return typed JSON response
+7. Catch and return error responses
+
+Example:
+
+```javascript
+export async function POST(request: NextRequest) {
+  const token = request.cookies.get('session')?.value;
+  const user = await getSessionUser(token);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await request.json();
+  const data = schema.parse(body); // Throws ZodError if invalid
+
+  const result = await createEntity({ ...data, organizationId: user.organizationId });
+  return NextResponse.json(result, { status: 201 });
+}
+```
+  const user = await getSessionUser(token);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await request.json();
+  const data = schema.parse(body); // Throws ZodError if invalid
+
+  const result = await createEntity({ ...data, organizationId: user.organizationId });
+  return NextResponse.json(result, { status: 201 });
+}
+### Form Pattern
+
+React Hook Form + Zod integration:
+
+```javascript
+const form = useForm<z.infer<typeof schema>>({
+  resolver: zodResolver(schema),
+  defaultValues: { ... }
+});
+
+async function onSubmit(values: z.infer<typeof schema>) {
+  const res = await fetch('/api/donors', {
+    method: 'POST',
+    body: JSON.stringify(values)
+  });
+  if (res.ok) {
+    toast({ title: 'Success' });
+    router.push('/donors');
+  } else {
+    toast({ title: 'Error', variant: 'destructive' });
+  }
+}
+
+return (
+  <Form {...form}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <FormField name="firstName" ... />
+    </form>
+  </Form>
+);
+```
+### Most Critical Files to Implement
+
+These 15 files establish all core patterns:
+
+#### Foundation
+
+- `prisma/schema.prisma` - Complete database schema
+- `prisma/seed.ts` - Realistic seed data
+
+#### Authentication
+
+- `src/lib/session.ts` - Session management pattern
+- `src/middleware.ts` - Route protection pattern
+- `src/app/api/auth/login/route.ts` - Auth endpoint pattern
+
+#### API Layer
+
+- `src/app/api/donors/route.ts` - API route pattern (GET list, POST create)
+- `src/lib/api/donors.ts` - Business logic separation pattern
+- `src/lib/validation/donor-schema.ts` - Zod validation pattern
+
+#### UI Layer
+
+- `src/app/(dashboard)/layout.tsx` - App layout structure
+- `src/app/(dashboard)/donors/page.tsx` - List page pattern
+- `src/components/donors/donor-form.tsx` - Form component pattern
+
+#### Testing
+
+- `vitest.config.ts` - Test configuration
+- `tests/setup.client.ts` - MSW setup pattern
+- `tests/handlers/donors.ts` - MSW handler pattern
+- `tests/e2e/donors.spec.ts` - E2E test pattern
+
+Once these 15 files are correctly implemented, all other features follow the same established patterns.
+## Commands Reference
+
+```bash
+# Install dependencies
+pnpm install
+
+# Database
+npx prisma generate
+npx prisma migrate dev
+npx prisma studio
+npx prisma db seed
+
+# Development
+pnpm dev
+
+# Testing
+pnpm test              # Vitest
+pnpm test:watch        # Watch mode
+pnpm test:ui           # Vitest UI
+pnpm test:e2e          # Playwright
+
+# Build
+pnpm build
+pnpm start
+```
+
+## Success Criteria
+
+MVP is complete when:
+
+- ✅ All 8 required API endpoints working
+- ✅ Authentication with session management
+- ✅ Donor CRUD (list, create, view, edit, delete)
+- ✅ Campaign CRUD (list, create, view)
+- ✅ Donation recording with donor metric updates
+- ✅ Segment builder with rule-based filtering
+- ✅ Workflow builder with step configuration
+- ✅ Task management with filtering and assignment
+- ✅ Dashboard with retention metrics
+- ✅ Full test coverage (unit + E2E)
+- ✅ Seed data with realistic volumes
+- ✅ Responsive design with shadcn/ui
+- ✅ Complete documentation
+
+**Total Estimated Timeline: 25 days**
+
+---
+
+## User approved the plan
+
+Perfect! Your implementation plan is now ready. I've created a comprehensive, step-by-step plan for building your DonorConnect application with:
+
+### Plan Highlights
+
+📋 **8 Implementation Phases (25 days total)**
+
+1. **Foundation** - Next.js setup, Prisma schema, testing infrastructure, shadcn/ui
+2. **Authentication** - Email/password auth with sessions, middleware protection
+3. **Core APIs** - All required endpoints (donors, campaigns, donations, segments, workflows, tasks)
+4. **Dashboard & Donor UI** - Main dashboard, donor list/detail/forms
+5. **Campaign & Donation UI** - Campaign and donation management interfaces
+6. **Segments & Workflows** - Rule builder and workflow editor
+7. **Task Management** - Task list with filtering and assignment
+8. **Polish & Testing** - Integration testing, UI polish, documentation
+
+### Key Features of the Plan
+
+- ✅ Complete Prisma schema with all entities, relationships, and enums
+- ✅ Realistic seed data (50+ donors, 200+ donations, campaigns, segments, workflows)
+- ✅ Session-based authentication with bcrypt and HTTP-only cookies
+- ✅ Consistent API patterns with Zod validation and business logic separation
+- ✅ shadcn/ui components for professional, accessible UI
+- ✅ Full testing setup (Vitest + Playwright + MSW)
+- ✅ 15 critical files that establish patterns for the entire app
