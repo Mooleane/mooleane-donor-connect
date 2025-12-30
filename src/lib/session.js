@@ -1,46 +1,56 @@
 // Session management for authentication
 import { cookies } from 'next/headers'
+import crypto from 'crypto'
 import { prisma } from './db'
 
 /**
- * TODO: Create a new session for a user
+ * Create a new session for a user
  * @param {string} userId - User ID to create session for
  * @returns {Promise<string>} Session token
  */
 export async function createSession(userId) {
-  // TODO: Generate secure session token
-  // TODO: Store session in database with expiration
-  // TODO: Set HTTP-only cookie
-  // TODO: Return session token
+  const token = crypto.randomBytes(48).toString('hex')
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) // 30 days
+
+  await prisma.session.create({ data: { token, userId, expiresAt } })
+  return token
 }
 
 /**
- * TODO: Get session and user data from session token
+ * Get session and user data from session token
  * @param {string} sessionToken - Session token to validate
  * @returns {Promise<Object|null>} Session with user data or null
  */
 export async function getSession(sessionToken) {
-  // TODO: Validate session token format
-  // TODO: Query database for session and user
-  // TODO: Check if session is expired
-  // TODO: Return session with user data or null
+  if (!sessionToken) return null
+  const session = await prisma.session.findUnique({ where: { token: sessionToken }, include: { user: true } })
+  if (!session) return null
+  if (session.expiresAt && session.expiresAt < new Date()) {
+    // expired
+    await prisma.session.delete({ where: { token: sessionToken } }).catch(() => {})
+    return null
+  }
+  const { user, ...rest } = session
+  const { password: _p, ...safeUser } = user || {}
+  return { ...rest, user: safeUser }
 }
 
 /**
- * TODO: Get current user from session (for server components)
+ * Get current user from session (for server components)
  * @returns {Promise<Object|null>} User object or null
  */
 export async function getSessionUser() {
-  // TODO: Get session token from cookies
-  // TODO: Call getSession to validate and get user
-  // TODO: Return user or null
+  const cookieStore = cookies()
+  const token = cookieStore.get('session')?.value
+  const session = await getSession(token)
+  return session ? session.user : null
 }
 
 /**
- * TODO: Delete a session (logout)
+ * Delete a session (logout)
  * @param {string} sessionToken - Session token to delete
  */
 export async function deleteSession(sessionToken) {
-  // TODO: Delete session from database
-  // TODO: Clear session cookie
-}
+  if (!sessionToken) return
+  await prisma.session.delete({ where: { token: sessionToken } }).catch(() => {})
+} 

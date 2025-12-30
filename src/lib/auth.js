@@ -3,36 +3,77 @@ import { prisma } from './db'
 import { hashPassword, verifyPassword } from './password'
 
 /**
- * TODO: Register a new user
+ * Register a new user. If no organizationId is provided, create a new organization.
  * @param {Object} userData - User registration data
- * @returns {Promise<Object>} Created user object
+ * @returns {Promise<Object>} Created user object (password omitted)
  */
 export async function register(userData) {
-  // TODO: Validate input data
-  // TODO: Check if user already exists
-  // TODO: Hash password
-  // TODO: Create user in database
-  // TODO: Return user object (without password)
+  const { firstName, lastName, email: rawEmail, password, organizationId, organizationName } = userData || {}
+
+  if (!firstName || !lastName || !rawEmail || !password) {
+    const err = new Error('Missing required fields')
+    err.code = 'VALIDATION_ERROR'
+    throw err
+  }
+
+  const email = rawEmail.trim().toLowerCase()
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) {
+    const err = new Error('Email already exists')
+    err.code = 'DUPLICATE_EMAIL'
+    throw err
+  }
+
+  const hashed = await hashPassword(password)
+
+  let orgId = organizationId
+  if (!orgId) {
+    const org = await prisma.organization.create({ data: { name: organizationName || `${firstName} ${lastName}` } })
+    orgId = org.id
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      password: hashed,
+      organizationId: orgId,
+      role: 'ADMIN'
+    }
+  })
+
+  // Remove password before returning
+  const { password: _p, ...safe } = user
+  return safe
 }
 
 /**
- * TODO: Authenticate user login
+ * Authenticate user login
  * @param {string} email - User email
  * @param {string} password - User password
  * @returns {Promise<Object|null>} User object or null if invalid
  */
 export async function login(email, password) {
-  // TODO: Find user by email
-  // TODO: Verify password
-  // TODO: Return user object (without password) or null
+  if (!email || !password) return null
+  const normalized = email.trim().toLowerCase()
+  const user = await prisma.user.findUnique({ where: { email: normalized } })
+  if (!user) return null
+  const ok = await verifyPassword(password, user.password)
+  if (!ok) return null
+  const { password: _p, ...safe } = user
+  return safe
 }
 
 /**
- * TODO: Get user by ID
+ * Get user by ID
  * @param {string} userId - User ID
  * @returns {Promise<Object|null>} User object or null
  */
 export async function getUserById(userId) {
-  // TODO: Query user from database with organization
-  // TODO: Return user object (without password)
-}
+  if (!userId) return null
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) return null
+  const { password: _p, ...safe } = user
+  return safe
+} 

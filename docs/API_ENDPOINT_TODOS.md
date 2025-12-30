@@ -27,6 +27,33 @@ This file lists every API endpoint that needs to be created or completed (or upd
 
 ---
 
+## Prisma Cloud & Environment Variables ☁️
+
+- **Store all secrets in environment variables.** Connection strings, API keys, and Prisma Cloud project identifiers must be provided via env vars (never commit secrets to the repo).
+  - Examples:
+    - `DATABASE_URL` — PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/dbname?sslmode=require`). For Neon or other cloud providers include `?sslmode=require`.
+    - `PRISMA_CLOUD_PROJECT` — (optional) Prisma Data Platform / Cloud project id when used.
+    - `PRISMA_CLOUD_API_KEY` — (optional) API key for Prisma Cloud operations.
+
+- **Local development:** add a `.env` file (gitignored) and keep a `.env.example` with placeholder values. Example entries:
+
+```env
+# .env (DO NOT COMMIT)
+DATABASE_URL="postgresql://user:password@db.host:5432/dbname?sslmode=require"
+PRISMA_CLOUD_PROJECT="your-prisma-cloud-project-id"
+PRISMA_CLOUD_API_KEY="REPLACE_WITH_SECRET"
+```
+
+- **CI / Deployments:** store secrets in your CI / hosting provider (GitHub Actions secrets, Vercel environment variables, etc.) and ensure `DATABASE_URL` and any Prisma Cloud tokens are injected at runtime.
+
+- **Prisma tooling & migrations:** Prisma CLI commands and code generation (`npx prisma generate`, `npx prisma migrate dev`, `prisma migrate deploy`) use `DATABASE_URL` and will work with cloud-hosted databases when the env var is set. For Prisma Data Platform / Cloud flows, follow the platform docs for setting project and token env vars before running migrations or deployments.
+
+- **Testing:** Tests should run against a test database or use mocking. Provide a `DATABASE_URL` for test runs via CI secrets or test setup. Never bake production secrets into test fixtures.
+
+- **Security & best practices:** never commit `.env` or secrets; rotate API keys regularly; use least-privileged DB users for CI/test; and validate that the deployed environment has the appropriate env vars set.
+
+---
+
 ## 1) Auth endpoints (tests exist and more are expected) 🔐
 
 ### POST /api/auth/login

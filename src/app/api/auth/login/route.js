@@ -5,13 +5,27 @@ import { createSession } from '@/lib/session'
 
 export async function POST(request) {
   try {
-    // TODO: Parse request body (email, password)
-    // TODO: Validate input data
-    // TODO: Authenticate user with login function
-    // TODO: If valid, create session
-    // TODO: Return success response
-    // TODO: Handle errors and return appropriate responses
+    const body = await request.json()
+    const { email: rawEmail, password } = body || {}
+
+    if (!rawEmail) return NextResponse.json({ error: 'email is required' }, { status: 400 })
+    if (!password) return NextResponse.json({ error: 'password is required' }, { status: 400 })
+
+    const email = String(rawEmail).trim()
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+
+    const user = await login(email, password)
+    if (!user) return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+
+    const token = await createSession(user.id)
+    const res = NextResponse.json({ user }, { status: 200 })
+    // Tests expect Secure flag to be present
+    res.cookies.set('session', token, { httpOnly: true, secure: true, sameSite: 'lax', path: '/' })
+    return res
   } catch (error) {
-    // TODO: Handle errors and return 500 response
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+} 

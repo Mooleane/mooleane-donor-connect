@@ -8,34 +8,56 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function LoginPage() {
-  // TODO: Implement state for email, password, error, loading
-  
-  // TODO: Implement handleSubmit function
-  // - Prevent default form submission
-  // - Make API call to /api/auth/login
-  // - Handle success: redirect to dashboard or intended destination
-  // - Handle errors: display error message
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Login failed')
+        setLoading(false)
+        return
+      }
+
+      // Redirect to dashboard
+      router.push('/(dashboard)')
+    } catch (err) {
+      setError('Login failed')
+      setLoading(false)
+    }
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
-        <p></p>
         <CardDescription>
-          Your job is to redesign this page to use the proper login page!
-          Use the BUILDD Framework or Mental models to help you design this page. 
-          You role and goal is to pass all test for the api endpoints. 
-        <div></div>
-          <p>Once you've successfully seeded the database, you should be able to login using the below credential. </p> 
+          Sign in to your account.
+          <div></div>
+          <p>After seeding the database, use: <strong>admin@hopefoundation.org</strong> / <strong>password123</strong></p>
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* TODO: Add error display */}
-        
-        <form>
-          {/* TODO: Add email input field */}
-          {/* TODO: Add password input field */}
-          {/* TODO: Add submit button with loading state */}
+        {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
+          <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Password" />
+
+          <Button type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</Button>
         </form>
 
         <div className="mt-6 text-center">
