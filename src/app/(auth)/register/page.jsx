@@ -36,8 +36,8 @@ export default function RegisterPage() {
         return
       }
 
-      // Redirect on success
-      router.push('/(dashboard)')
+      // Redirect on success to onboarding
+      router.push('/onboarding')
     } catch (err) {
       setError('Registration failed')
       setLoading(false)
@@ -63,7 +63,6 @@ export default function RegisterPage() {
 
           <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Email" />
           <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Password" />
-          <Input placeholder="Organization name (optional)" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} aria-label="Organization name" />
 
           <Button type="submit" disabled={loading}>
             {loading ? 'Creating account...' : 'Create account'}

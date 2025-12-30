@@ -32,8 +32,8 @@ export default function LoginPage() {
         return
       }
 
-      // Redirect to dashboard
-      router.push('/(dashboard)')
+      // Redirect to onboarding
+      router.push('/onboarding')
     } catch (err) {
       setError('Login failed')
       setLoading(false)

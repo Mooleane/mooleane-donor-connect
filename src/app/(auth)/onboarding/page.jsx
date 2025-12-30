@@ -149,7 +149,6 @@ export default function OnboardingPage() {
               <Input placeholder="Organization name" value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} aria-label="Organization name" />
               <div className="flex items-center gap-3">
                 <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create organization'}</Button>
-                <Link href="/register" className="text-sm text-gray-600">Or create a user account instead</Link>
               </div>
             </form>
           </div>
