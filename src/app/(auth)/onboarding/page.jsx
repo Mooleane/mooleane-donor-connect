@@ -29,7 +29,7 @@ export default function OnboardingPage() {
     setError(null)
 
     // Simple search against API (expects /api/organizations?search=...)
-    fetch(`/api/organizations?search=${encodeURIComponent(query)}`)
+    fetch(`/api/organizations?search=${encodeURIComponent(query)}`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return
@@ -64,6 +64,7 @@ export default function OnboardingPage() {
     try {
       const res = await fetch('/api/organizations', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newOrgName })
       })

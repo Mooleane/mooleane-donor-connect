@@ -6,6 +6,10 @@ import { PrismaClient } from '../generated/client.js'
 // Parse connection string and create pool with SSL configuration
 const connectionString = process.env.DATABASE_URL
 
+if (!connectionString) {
+  throw new Error('Missing DATABASE_URL environment variable. Please set DATABASE_URL to your Neon/Postgres connection string (e.g. in .env).')
+}
+
 // Create pg Pool with SSL enabled for Neon and other cloud providers
 const pool = new Pool({
   connectionString,

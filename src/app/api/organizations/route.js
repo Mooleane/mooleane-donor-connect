@@ -7,19 +7,38 @@ export async function GET(request) {
     const url = new URL(request.url)
     const search = url.searchParams.get('search') || ''
 
+    // Build a safe search query only using fields that exist on the Organization model
+    // Also allow matching on related users' email and donors' city/state
     const where = search
       ? {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
-            { // allow searching email or city/state if those fields exist on the org model
-              // fallback: treat email/website stored in optional fields
-              email: { contains: search, mode: 'insensitive' }
-            },
+            { users: { some: { email: { contains: search, mode: 'insensitive' } } } },
+            { donors: { some: { city: { contains: search, mode: 'insensitive' } } } },
+            { donors: { some: { state: { contains: search, mode: 'insensitive' } } } },
           ],
         }
       : undefined
 
-    const organizations = await prisma.organization.findMany({ where, take: 50 })
+    // Return a small, flattened shape so the client can show name/email/city/state safely
+    const orgs = await prisma.organization.findMany({
+      where,
+      take: 50,
+      include: {
+        users: { take: 1, select: { email: true } },
+        donors: { take: 1, select: { city: true, state: true } },
+      },
+    })
+
+    const organizations = orgs.map((o) => ({
+      id: o.id,
+      name: o.name,
+      email: o.users?.[0]?.email || null,
+      city: o.donors?.[0]?.city || null,
+      state: o.donors?.[0]?.state || null,
+      website: null,
+    }))
+
     return NextResponse.json({ organizations })
   } catch (err) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
