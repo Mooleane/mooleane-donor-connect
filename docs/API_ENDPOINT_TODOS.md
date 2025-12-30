@@ -296,6 +296,76 @@ File: `src/app/api/workflows/[id]/route.js`
 
 ---
 
+## UI Pages & Features (required) 🖥️
+
+The application requires the following UI pages and interactive features. For each feature, implement the UI component/page, client interactions, and the necessary API endpoints described above. Add tests (JSDOM for components and integration/E2E for flows).
+
+- **Dashboard**
+  - Description: main landing page for organization users; shows donor summary, key metrics, recent donations, actionable widgets.
+  - API: `GET /api/dashboard/summary` (create if missing) returning totals, recentDonations, topDonors. Alternatively, aggregate with existing endpoints (`/api/donors`, `/api/donations`).
+  - Tests: component rendering, API mocking, integration test verifying data load.
+
+- **Add Donor Popup**
+  - Description: modal form to add donor inline from dashboard or donors list.
+  - API: `POST /api/donors` (ensure endpoint supports minimal payload and returns created donor).
+  - Tests: form validation, submit triggers POST, success closes modal and shows new donor.
+
+- **Record Donation Popup**
+  - Description: modal to record a donation; selects donor, amount, date, campaign.
+  - API: `POST /api/donations`, `GET /api/donors` (for donor select), `GET /api/campaigns` (for campaign list).
+  - Behavior: on success, update donor metrics in UI and show success toast.
+  - Tests: validation, API calls, UI updates.
+
+- **Donors (page)**
+  - Description: list page with search, filters (status, retention risk), pagination, and actions (view/edit/delete, open add donor popup).
+  - API: `GET /api/donors`, `POST /api/donors`, `GET|PATCH|DELETE /api/donors/[id]`.
+  - Tests: list rendering, searching triggers API with query params, pagination behavior.
+
+- **Donations (page)**
+  - Description: list of donations with filters, ability to record donation via popup, and view donation details.
+  - API: `GET /api/donations`, `POST /api/donations`, `GET|PATCH|DELETE /api/donations/[id]`.
+  - Tests: list retrieval, filtering, creation flow.
+
+- **Reports**
+  - Description: page providing aggregate reports (donation trends, retention metrics) and CSV export.
+  - API: `GET /api/reports/donations` (date range, aggregation), `GET /api/reports/donors`.
+  - Tests: report generation components and integration tests for data accuracy.
+
+- **Settings**
+  - Description: organization and user settings (profile, billing placeholder, roles/permissions UI for admins).
+  - API: `GET|PATCH /api/organizations/[id]`, `GET|PATCH /api/users/[id]` (billing endpoints optional).
+  - Tests: settings form validation and save behavior.
+
+- **Login**
+  - Description: sign-in page using the `POST /api/auth/login` endpoint; shows error messages for invalid input and failed login.
+  - Tests: form validation, successful login sets cookie and redirects to dashboard.
+
+- **Create Account**
+  - Description: registration page calling `POST /api/auth/register`; on success logs user in and redirects through onboarding.
+  - Tests: registration validation and successful flow.
+
+- **Onboarding**
+  - Description: guided setup after account creation or joining org (create/select organization, add initial donors/import sample data).
+  - API: `POST /api/organizations`, `POST /api/organizations/[id]/join` (invite flows), and import endpoints for sample data.
+  - Tests: onboarding flow with integration or E2E tests.
+
+- **Joining an Organization**
+  - Description: flow to allow users to join an existing organization by invitation or code.
+  - API: `POST /api/organizations/join` or endpoint to accept invite tokens; `GET /api/organizations/my` to list membership.
+  - Tests: join flow and membership verification.
+
+- **Add Organization**
+  - Description: page and endpoint to create a new organization and set it as the user's current organization.
+  - API: `POST /api/organizations` - requires authenticated user; returns organization and assigns user as admin.
+  - Tests: creation assigns organizationId to user and subsequent API calls use that organization.
+
+Notes:
+- For UI interactions that change data, ensure optimistic UI or manual refresh behavior is covered by tests.
+- Add Playwright E2E tests for the main flows: `login→dashboard`, `add donor→record donation`, `onboarding/join org` flows.
+- Update docs and component tests to include coverage for popup/modal components and accessibility (labels/roles).
+
+---
+
 If you'd like, I can:
 - Open a PR that implements one high priority endpoint (e.g., `login` or `donors` GET/POST), or
 - Create unit tests for any missing endpoints (e.g., `register`, `logout`, donors `[id]`) to capture the expected behavior.
