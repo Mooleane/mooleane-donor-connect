@@ -30,17 +30,23 @@ export async function POST(request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await request.json()
-    const { firstName, lastName, email, phone } = body
+    const { type, firstName, lastName, organizationName, email, phone, city, state } = body
 
-    if (!firstName) return NextResponse.json({ error: 'firstName is required' }, { status: 400 })
+    if (type === 'organization') {
+      if (!organizationName) return NextResponse.json({ error: 'organizationName is required' }, { status: 400 })
+    } else {
+      if (!firstName) return NextResponse.json({ error: 'firstName is required' }, { status: 400 })
+    }
 
     const donor = await prisma.donor.create({
       data: {
         organizationId: session.user.organizationId,
-        firstName: firstName,
-        lastName: lastName || '',
+        firstName: type === 'organization' ? organizationName : firstName,
+        lastName: type === 'organization' ? '' : (lastName || ''),
         email: email || null,
         phone: phone || null,
+        city: city || null,
+        state: state || null,
       },
     })
 
