@@ -10,10 +10,6 @@ export default function DashboardPage() {
   const [recentDonations, setRecentDonations] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Donors list for dashboard (show all donors from /api/donors)
-  const [donors, setDonors] = useState([])
-  const [donorsLoading, setDonorsLoading] = useState(true)
-
   const fetchSummary = async () => {
     setLoading(true)
     try {
@@ -29,24 +25,8 @@ export default function DashboardPage() {
     }
   }
 
-  const fetchDonors = async () => {
-    setDonorsLoading(true)
-    try {
-      const res = await fetch('/api/donors')
-      if (!res.ok) throw new Error('Failed to fetch donors')
-      const payload = await res.json()
-      setDonors(payload.donors || [])
-    } catch (err) {
-      console.error('GET /api/donors', err)
-      setDonors([])
-    } finally {
-      setDonorsLoading(false)
-    }
-  }
-
   useEffect(() => {
     fetchSummary()
-    fetchDonors()
   }, [])
 
   const handleRecorded = (donation) => {
@@ -84,7 +64,7 @@ export default function DashboardPage() {
 
       <div className="bg-white rounded border p-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Donors</h2>
+          <h2 className="text-lg font-semibold">Recent Donations</h2>
           <div className="space-x-2">
             <Link href="/donors/new">
               <Button>Add Donor</Button>
@@ -106,27 +86,27 @@ export default function DashboardPage() {
           <table className="w-full table-auto">
             <thead>
               <tr className="text-left text-sm text-gray-600">
-                <th className="p-2">Name</th>
-                <th className="p-2">Email</th>
-                <th className="p-2">Phone</th>
-                <th className="p-2">Joined</th>
+                <th className="p-2">Date</th>
+                <th className="p-2">Donor</th>
+                <th className="p-2">Amount</th>
+                <th className="p-2">Campaign</th>
               </tr>
             </thead>
             <tbody>
-              {donorsLoading && (
-                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">Loading donors…</td></tr>
+              {loading && (
+                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">Loading donations…</td></tr>
               )}
 
-              {!donorsLoading && donors.length === 0 && (
-                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">No donors found</td></tr>
+              {!loading && recentDonations.length === 0 && (
+                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">No recent donations</td></tr>
               )}
 
-              {donors.map(d => (
+              {recentDonations.map(d => (
                 <tr key={d.id} className="border-t">
-                  <td className="p-2">{`${d.firstName || ''}${d.lastName ? ' ' + d.lastName : ''}` || '—'}</td>
-                  <td className="p-2">{d.email || '—'}</td>
-                  <td className="p-2">{d.phone || '—'}</td>
-                  <td className="p-2">{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}</td>
+                  <td className="p-2">{new Date(d.date).toLocaleDateString()}</td>
+                  <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
+                  <td className="p-2">${Number(d.amount).toFixed(2)}</td>
+                  <td className="p-2">{d.campaign ? d.campaign.name : '—'}</td>
                 </tr>
               ))}
             </tbody>
