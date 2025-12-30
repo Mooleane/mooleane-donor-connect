@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Segments', href: '/segments', icon: FolderTree },
   { name: 'Workflows', href: '/workflows', icon: Workflow },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { name: 'Reports', href: '/reports', icon: TrendingUp },
 ]
 
 export default async function DashboardLayout({ children }) {

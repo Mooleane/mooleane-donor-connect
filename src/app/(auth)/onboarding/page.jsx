@@ -52,7 +52,7 @@ export default function OnboardingPage() {
   async function handleSelect(org) {
     // For a simple onboarding flow, selecting an org redirects to dashboard
     // In a full flow, we'd call an endpoint to join the org or set it as current
-    router.push('/(dashboard)')
+    router.push('/dashboard')
   }
 
   async function handleCreate(e) {
@@ -76,7 +76,7 @@ export default function OnboardingPage() {
       }
 
       // Redirect to dashboard after creating org
-      router.push('/(dashboard)')
+      router.push('/dashboard')
     } catch (err) {
       setCreateError('Could not create organization')
       setCreating(false)
