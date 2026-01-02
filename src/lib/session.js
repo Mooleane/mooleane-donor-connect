@@ -40,10 +40,15 @@ export async function getSession(sessionToken) {
  * @returns {Promise<Object|null>} User object or null
  */
 export async function getSessionUser() {
-  const cookieStore = cookies()
-  const token = cookieStore.get('session')?.value
-  const session = await getSession(token)
-  return session ? session.user : null
+  try {
+    const cookieStore = cookies()
+    const token = cookieStore.get('session')?.value
+    const session = await getSession(token)
+    return session ? session.user : null
+  } catch (error) {
+    console.error('Failed to get session user:', error)
+    return null
+  }
 }
 
 /**
