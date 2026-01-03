@@ -79,11 +79,11 @@ export default function DonationsPage() {
                   <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
                   <td className="p-2">{formatCurrency(d.amount || 0)}</td>
                   <td className="p-2">
-                    {/* If `method` exists assume paid, otherwise pending */}
+                    {/* Show method or placeholder */}
                     {d.method ? (
-                      <Badge className="bg-green-500 text-white">Paid</Badge>
+                      <Badge className="bg-blue-500 text-white">{d.method}</Badge>
                     ) : (
-                      <Badge className="bg-gray-300 text-black">Pending</Badge>
+                      <Badge className="bg-gray-300 text-black">—</Badge>
                     )}
                   </td>
                 </tr>
