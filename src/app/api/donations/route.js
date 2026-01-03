@@ -10,24 +10,44 @@ export async function GET(request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(request.url)
-    const limit = parseInt(url.searchParams.get('limit') || '10', 10)
-    const page = parseInt(url.searchParams.get('page') || '1', 10)
-    const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1)
+    const start = url.searchParams.get('start')
+    const end = url.searchParams.get('end')
+    const limitParam = url.searchParams.get('limit')
+    const pageParam = url.searchParams.get('page')
 
     const where = { donor: { organizationId: session.user.organizationId } }
+    if (start && end) {
+      where.date = {
+        gte: new Date(start),
+        lte: new Date(end)
+      }
+    }
 
-    const [donations, total] = await Promise.all([
-      prisma.donation.findMany({
+    // If paginated, return object; if not, return array for reports page compatibility
+    if (limitParam || pageParam) {
+      const limit = parseInt(limitParam || '10', 10)
+      const page = parseInt(pageParam || '1', 10)
+      const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1)
+      const [donations, total] = await Promise.all([
+        prisma.donation.findMany({
+          where,
+          orderBy: { date: 'desc' },
+          include: { donor: true, campaign: true },
+          skip,
+          take: limit,
+        }),
+        prisma.donation.count({ where }),
+      ])
+      return NextResponse.json({ donations, pagination: { page, limit, total } })
+    } else {
+      // For reports page: return plain array
+      const donations = await prisma.donation.findMany({
         where,
         orderBy: { date: 'desc' },
         include: { donor: true, campaign: true },
-        skip,
-        take: limit,
-      }),
-      prisma.donation.count({ where }),
-    ])
-
-    return NextResponse.json({ donations, pagination: { page, limit, total } })
+      })
+      return NextResponse.json(donations)
+    }
   } catch (error) {
     console.error('GET /api/donations error', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
