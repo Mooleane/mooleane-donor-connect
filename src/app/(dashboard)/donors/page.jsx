@@ -10,18 +10,20 @@ export default function DonorsPage() {
   const [donors, setDonors] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 10;
 
   useEffect(() => {
     const fetchDonors = async () => {
       setLoading(true)
       setError('')
       try {
-        const res = await fetch('/api/donors?sort=totalDesc')
+        const res = await fetch(`/api/donors?sort=totalDesc&page=${page}&limit=${limit}`)
         if (!res.ok) throw new Error('Failed to load donors')
         const payload = await res.json()
-        // Show only donors who have donated and sort greatest to least by totalAmount
-        const list = (payload.donors || []).filter(d => (d.totalAmount || 0) > 0).slice().sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))
-        setDonors(list)
+        setDonors(payload.donors || [])
+        setTotal(payload.pagination?.total || 0)
       } catch (err) {
         console.error(err)
         setError('Failed to load donors')
@@ -29,9 +31,8 @@ export default function DonorsPage() {
         setLoading(false)
       }
     }
-
     fetchDonors()
-  }, [])
+  }, [page])
 
   return (
     <div className="space-y-6">
@@ -83,6 +84,24 @@ export default function DonorsPage() {
             </tbody>
           </table>
         )}
+      </div>
+      {/* Pagination */}
+      <div className="flex justify-center gap-4 mt-6">
+        <button
+          className="px-3 py-1 rounded border disabled:opacity-50"
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          Previous
+        </button>
+        <span className="px-2">Page {page} of {Math.max(1, Math.ceil(total / limit))}</span>
+        <button
+          className="px-3 py-1 rounded border disabled:opacity-50"
+          onClick={() => setPage(p => p + 1)}
+          disabled={page >= Math.ceil(total / limit)}
+        >
+          Next
+        </button>
       </div>
     </div>
   )

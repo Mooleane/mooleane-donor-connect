@@ -12,6 +12,9 @@ export default function DonationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [deletingId, setDeletingId] = useState(null)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const limit = 10;
   // Delete donation handler
   const handleDeleteDonation = async (id) => {
     if (!id) return
@@ -37,12 +40,11 @@ export default function DonationsPage() {
       setLoading(true)
       setError('')
       try {
-        // get recent donations (most recent first)
-        const res = await fetch('/api/donations?limit=50')
+        const res = await fetch(`/api/donations?page=${page}&limit=${limit}`)
         if (!res.ok) throw new Error('Failed to load donations')
         const payload = await res.json()
-        const list = (payload.donations || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date))
-        setDonations(list)
+        setDonations(payload.donations || [])
+        setTotal(payload.pagination?.total || 0)
       } catch (err) {
         console.error(err)
         setError('Failed to load donations')
@@ -50,9 +52,8 @@ export default function DonationsPage() {
         setLoading(false)
       }
     }
-
     fetchDonations()
-  }, [])
+  }, [page])
 
   return (
     <div className="space-y-6">
@@ -130,6 +131,24 @@ export default function DonationsPage() {
             </tbody>
           </table>
         )}
+      </div>
+      {/* Pagination */}
+      <div className="flex justify-center gap-4 mt-6">
+        <button
+          className="px-3 py-1 rounded border disabled:opacity-50"
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          Previous
+        </button>
+        <span className="px-2">Page {page} of {Math.max(1, Math.ceil(total / limit))}</span>
+        <button
+          className="px-3 py-1 rounded border disabled:opacity-50"
+          onClick={() => setPage(p => p + 1)}
+          disabled={page >= Math.ceil(total / limit)}
+        >
+          Next
+        </button>
       </div>
     </div>
   )
