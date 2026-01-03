@@ -109,30 +109,32 @@ export default function OnboardingPage() {
               ) : null}
 
               {results.length > 0 && (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr>
-                      <th className="py-2">Organization</th>
-                      <th className="py-2">City/State</th>
-                      <th className="py-2">Email</th>
-                      <th className="py-2">Website</th>
-                      <th className="py-2">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((org) => (
-                      <tr key={org.id} className="border-t">
-                        <td className="py-2">{org.name}</td>
-                        <td className="py-2">{org.city || '-'}{org.state ? `, ${org.state}` : ''}</td>
-                        <td className="py-2">{org.email || '-'}</td>
-                        <td className="py-2">{org.website || '-'}</td>
-                        <td className="py-2">
-                          <Button variant="ghost" onClick={() => handleSelect(org)}>Select</Button>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-left border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="py-2 px-2">Organization</th>
+                        <th className="py-2 px-2">City/State</th>
+                        <th className="py-2 px-2">Email</th>
+                        <th className="py-2 px-2">Website</th>
+                        <th className="py-2 px-2">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {results.map((org) => (
+                        <tr key={org.id} className="border-t">
+                          <td className="py-2 px-2 break-words max-w-xs">{org.name}</td>
+                          <td className="py-2 px-2 break-words max-w-xs">{org.city || '-'}{org.state ? `, ${org.state}` : ''}</td>
+                          <td className="py-2 px-2 break-words max-w-xs">{org.email || '-'}</td>
+                          <td className="py-2 px-2 break-words max-w-xs">{org.website || '-'}</td>
+                          <td className="py-2 px-2">
+                            <Button variant="ghost" onClick={() => handleSelect(org)}>Select</Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
