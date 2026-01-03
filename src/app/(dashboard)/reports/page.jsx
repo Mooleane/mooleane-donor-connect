@@ -1,6 +1,8 @@
 "use client"
+
 import { useState, useEffect } from "react";
 import { format, subDays } from "date-fns";
+import jsPDF from "jspdf";
 
 export default function ReportsPage() {
   // Default: last 7 days
@@ -63,9 +65,45 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Placeholder for PDF export
+
+  // PDF export using jsPDF
   const exportPDF = () => {
-    alert("PDF export coming soon!");
+    const doc = new jsPDF();
+    let y = 10;
+    doc.setFontSize(16);
+    doc.text("Donations Report", 10, y);
+    y += 10;
+    doc.setFontSize(10);
+    doc.text(`Date Range: ${start} to ${end}`, 10, y);
+    y += 10;
+    doc.text(`Total: $${summary.total.toFixed(2)}    Donations: ${summary.count}    Avg: $${summary.avg.toFixed(2)}`, 10, y);
+    y += 10;
+
+    // Table header
+    doc.setFontSize(12);
+    doc.text("Date", 10, y);
+    doc.text("Donor", 40, y);
+    doc.text("Amount", 110, y);
+    doc.text("Status", 150, y);
+    y += 7;
+    doc.setLineWidth(0.1);
+    doc.line(10, y, 200, y);
+    y += 3;
+
+    doc.setFontSize(10);
+    donations.forEach(d => {
+      if (y > 280) {
+        doc.addPage();
+        y = 10;
+      }
+      doc.text(format(new Date(d.date), "MM/dd"), 10, y);
+      doc.text(d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : "—", 40, y);
+      doc.text(`$${Number(d.amount).toFixed(2)}`, 110, y);
+      doc.text(d.status || "—", 150, y);
+      y += 7;
+    });
+
+    doc.save(`donations-report-${start}-to-${end}.pdf`);
   };
 
   return (
