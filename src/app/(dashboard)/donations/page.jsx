@@ -69,7 +69,7 @@ export default function DonationsPage() {
                 <th className="p-2">Date</th>
                 <th className="p-2">Donor</th>
                 <th className="p-2">Amount</th>
-                <th className="p-2">Pay Status</th>
+                <th className="p-2">Pay Method</th>
               </tr>
             </thead>
             <tbody>
