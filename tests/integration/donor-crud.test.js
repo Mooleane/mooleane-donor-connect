@@ -1,4 +1,3 @@
-// vitest-environment node
 
 /**
  * Integration Tests: Donor CRUD Operations
@@ -9,14 +8,17 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { getTestPrisma } from '../helpers/database'
 import { createTestDonor, createTestDonation } from '../helpers/test-data'
 
-describe('Donor CRUD Integration Tests', () => {
-  let prisma
+if (process.env.SKIP_INTEGRATION === '1') {
+  describe.skip('Donor CRUD Integration Tests (skipped: SKIP_INTEGRATION=1)', () => {})
+} else {
+  describe('Donor CRUD Integration Tests', () => {
+    let prisma
 
-  beforeEach(() => {
-    prisma = getTestPrisma()
-  })
+    beforeEach(() => {
+      prisma = getTestPrisma()
+    })
 
-  describe('Create Donor', () => {
+    describe('Create Donor', () => {
     it('should create donor with required fields', async () => {
       const donorData = createTestDonor({
         firstName: 'John',
@@ -292,3 +294,4 @@ describe('Donor CRUD Integration Tests', () => {
     })
   })
 })
+

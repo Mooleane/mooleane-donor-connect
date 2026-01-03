@@ -17,19 +17,21 @@ export function formatCurrency(amount) {
 
 // Format date
 export function formatDate(date) {
-  if (!date) return 'N/A'
+  if (date === null || date === undefined) return 'Invalid Date'
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return 'Invalid Date'
+
   try {
-    return new Intl.DateFormat('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
-      month: 'short',
+      month: 'numeric',
       day: 'numeric',
-    }).format(new Date(date))
+    }).format(d)
   } catch (error) {
     // Fallback if Intl is not available
-    const d = new Date(date)
     return d.toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'short',
+      month: 'numeric',
       day: 'numeric',
     })
   }

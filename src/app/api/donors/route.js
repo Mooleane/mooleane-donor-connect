@@ -9,14 +9,40 @@ export async function GET(request) {
     const session = await getSession(sessionToken)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // Basic donor list for selection (no pagination for now)
-    const donors = await prisma.donor.findMany({
-      where: { organizationId: session.user.organizationId },
-      orderBy: { lastName: 'asc' },
-      take: 200,
-    })
+    const url = new URL(request.url)
+    const sort = url.searchParams.get('sort') || ''
+    const page = parseInt(url.searchParams.get('page') || '1', 10)
+    const limit = parseInt(url.searchParams.get('limit') || '200', 10)
+    const search = url.searchParams.get('search') || ''
+    const status = url.searchParams.get('status') || ''
+    const retentionRisk = url.searchParams.get('retentionRisk') || ''
 
-    return NextResponse.json({ donors })
+    // Support sorting by total amount descending for ranking donors by total given
+    const orderBy = sort === 'totalDesc' ? { totalAmount: 'desc' } : { lastName: 'asc' }
+
+    // Build where clause
+    const where = { organizationId: session.user.organizationId }
+
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    if (status) where.status = status
+    if (retentionRisk) where.retentionRisk = retentionRisk
+
+    const skip = (Math.max(page, 1) - 1) * limit
+    const take = limit
+
+    const [donors, total] = await Promise.all([
+      prisma.donor.findMany({ where, orderBy, skip, take }),
+      prisma.donor.count({ where }),
+    ])
+
+    return NextResponse.json({ donors, pagination: { total } })
   } catch (error) {
     console.error('GET /api/donors', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -32,11 +58,19 @@ export async function POST(request) {
     const body = await request.json()
     const { type, firstName, lastName, organizationName, email, phone, city, state } = body
 
+    // Permission check: only STAFF or ADMIN can create donors
+    const role = session.user.role || 'STAFF'
+    if (role === 'READONLY') return NextResponse.json({ error: 'Insufficient permission to create donor' }, { status: 403 })
+
     if (type === 'organization') {
       if (!organizationName) return NextResponse.json({ error: 'organizationName is required' }, { status: 400 })
     } else {
       if (!firstName) return NextResponse.json({ error: 'firstName is required' }, { status: 400 })
     }
+
+    // Basic email validation if provided
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (email && !emailRegex.test(email)) return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
 
     const donor = await prisma.donor.create({
       data: {
@@ -47,6 +81,8 @@ export async function POST(request) {
         phone: phone || null,
         city: city || null,
         state: state || null,
+        status: 'ACTIVE',
+        retentionRisk: 'UNKNOWN',
       },
     })
 

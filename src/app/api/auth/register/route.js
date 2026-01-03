@@ -17,7 +17,7 @@ export async function POST(request) {
       const token = await createSession(user.id)
 
       const res = NextResponse.json({ user }, { status: 201 })
-      res.cookies.set('session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' })
+      res.cookies.set('session', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'Lax', path: '/' })
       return res
     } catch (err) {
       if (err && err.code === 'DUPLICATE_EMAIL') {

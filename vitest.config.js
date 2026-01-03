@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    environment: 'jsdom',
     // Auto-detect environment based on file path
     environmentMatchGlobs: [
       ['tests/components/**', 'jsdom'],
@@ -17,6 +18,7 @@ export default defineConfig({
       ['tests/lib/**', 'node'],
     ],
     setupFiles: ['./tests/setup.js'],
+    exclude: process.env.RUN_INTEGRATION === '1' ? [] : ['tests/integration/**'],
     include: ['tests/**/*.test.{js,jsx}'],
     coverage: {
       provider: 'v8',

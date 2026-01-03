@@ -47,7 +47,36 @@ export async function deleteDonor(params) {
  * @param {string} donorId - Donor ID to update metrics for
  */
 export async function updateDonorMetrics(donorId) {
-  // TODO: Calculate total amount, gift count, average gift, last gift date
-  // TODO: Update retention risk based on giving patterns
-  // TODO: Update donor record with calculated metrics
+  // Calculate donation metrics and update donor record
+  const donations = await prisma.donation.findMany({ where: { donorId } })
+  const totalGifts = donations.length
+  const totalAmount = donations.reduce((sum, d) => sum + (d.amount || 0), 0)
+
+  let lastGiftDate = null
+  if (donations.length > 0) {
+    const latest = donations.reduce((a, b) => (new Date(a.receivedAt) > new Date(b.receivedAt) ? a : b))
+    lastGiftDate = latest.receivedAt
+  }
+
+  // Determine retention risk based on last gift date
+  let retentionRisk = 'UNKNOWN'
+  if (lastGiftDate) {
+    const msPerDay = 24 * 60 * 60 * 1000
+    const daysSince = Math.floor((Date.now() - new Date(lastGiftDate).getTime()) / msPerDay)
+    if (daysSince >= 365) retentionRisk = 'CRITICAL'
+    else if (daysSince >= 180) retentionRisk = 'HIGH'
+    else if (daysSince >= 90) retentionRisk = 'MEDIUM'
+    else if (daysSince >= 30) retentionRisk = 'LOW'
+    else retentionRisk = 'UNKNOWN'
+  }
+
+  await prisma.donor.update({
+    where: { id: donorId },
+    data: {
+      totalGifts,
+      totalAmount,
+      lastGiftDate: lastGiftDate || null,
+      retentionRisk,
+    },
+  })
 }

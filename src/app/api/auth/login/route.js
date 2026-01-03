@@ -23,7 +23,7 @@ export async function POST(request) {
     const token = await createSession(user.id)
     const res = NextResponse.json({ user }, { status: 200 })
     // Tests expect Secure flag to be present
-    res.cookies.set('session', token, { httpOnly: true, secure: true, sameSite: 'lax', path: '/' })
+    res.cookies.set('session', token, { httpOnly: true, secure: true, sameSite: 'Lax', path: '/' })
     return res
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
