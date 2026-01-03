@@ -46,8 +46,6 @@ export default function LoginPage() {
         <CardTitle>Sign In</CardTitle>
         <CardDescription>
           Sign in to your account.
-          <div></div>
-          <p>After seeding the database, use: <strong>admin@hopefoundation.org</strong> / <strong>password123</strong></p>
         </CardDescription>
       </CardHeader>
       <CardContent>
