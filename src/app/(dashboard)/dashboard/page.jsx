@@ -71,7 +71,7 @@ export default function DashboardPage() {
             </Link>
             <Button onClick={() => setShowRecord(true)}>Record Donation</Button>
             <Link href="/reports">
-              <Button variant="outline">View Reports</Button>
+              <Button>View Reports</Button>
             </Link>
           </div>
         </div>
