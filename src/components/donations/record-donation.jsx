@@ -14,6 +14,7 @@ export default function RecordDonation({ onRecorded }) {
   const [newCampaignName, setNewCampaignName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [payMethod, setPayMethod] = useState('')
 
   useEffect(() => {
     fetch('/api/donors')
@@ -57,6 +58,7 @@ export default function RecordDonation({ onRecorded }) {
     try {
       const body = { donorId, amount: Number(amount), date }
       if (campaignId) body.campaignId = campaignId
+      if (payMethod && payMethod.trim() !== '') body.method = payMethod.trim()
 
       const res = await fetch('/api/donations', {
         method: 'POST',
@@ -68,6 +70,7 @@ export default function RecordDonation({ onRecorded }) {
       setAmount('')
       setDonorId('')
       setCampaignId('')
+      setPayMethod('')
       onRecorded && onRecorded(payload.donation)
     } catch (err) {
       setError(err.message)
@@ -96,6 +99,18 @@ export default function RecordDonation({ onRecorded }) {
       <div>
         <label className="block text-sm font-medium text-gray-700">Date</label>
         <input className="mt-1 block w-full rounded border px-3 py-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Payment Method <span className="text-sm text-gray-500">(custom)</span></label>
+        <input
+          className="mt-1 block w-full rounded border px-3 py-2"
+          type="text"
+          placeholder="e.g. Credit Card, Check, PayPal, ..."
+          value={payMethod}
+          onChange={e => setPayMethod(e.target.value)}
+          maxLength={50}
+        />
       </div>
 
       <div>
