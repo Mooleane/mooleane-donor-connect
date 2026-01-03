@@ -2,11 +2,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import RecordDonation from '@/components/donations/record-donation'
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState(null)
-  const [showRecord, setShowRecord] = useState(false)
   const [recentDonations, setRecentDonations] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -28,13 +26,6 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchSummary()
   }, [])
-
-  const handleRecorded = (donation) => {
-    // Prepend new donation to list and refresh summary
-    setRecentDonations(prev => [donation, ...prev].slice(0, 5))
-    fetchSummary()
-    setShowRecord(false)
-  }
 
   return (
     <div className="space-y-8">
@@ -69,18 +60,14 @@ export default function DashboardPage() {
             <Link href="/donors/new">
               <Button>Add Donor</Button>
             </Link>
-            <Button onClick={() => setShowRecord(true)}>Record Donation</Button>
+            <Link href="/donations/new">
+              <Button>Record Donation</Button>
+            </Link>
             <Link href="/reports">
               <Button>View Reports</Button>
             </Link>
           </div>
         </div>
-
-        {showRecord && (
-          <div className="mb-4">
-            <RecordDonation onRecorded={handleRecorded} />
-          </div>
-        )}
 
         <div>
           <table className="w-full table-auto">

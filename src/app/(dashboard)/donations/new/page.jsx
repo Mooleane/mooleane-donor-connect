@@ -1,5 +1,38 @@
-// New donation form page
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import RecordDonation from '@/components/donations/record-donation'
+
 export default function NewDonationPage() {
-  // TODO: Implement donation creation form
-  return <div><h1>Record New Donation</h1></div>
+  const router = useRouter()
+  const [open, setOpen] = useState(true)
+
+  const onClose = () => {
+    setOpen(false)
+    router.push('/dashboard')
+  }
+
+  const handleRecorded = (donation) => {
+    // After recording, navigate back to dashboard which will refresh summary
+    router.push('/dashboard')
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(val) => { if (!val) onClose() }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Record Donation</DialogTitle>
+          <DialogDescription>
+            Quickly record a donation for an existing donor
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-4">
+          <RecordDonation onRecorded={handleRecorded} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
