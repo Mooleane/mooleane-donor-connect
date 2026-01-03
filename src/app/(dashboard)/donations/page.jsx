@@ -11,6 +11,26 @@ export default function DonationsPage() {
   const [donations, setDonations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState(null)
+  // Delete donation handler
+  const handleDeleteDonation = async (id) => {
+    if (!id) return
+    if (!window.confirm('Are you sure you want to delete this donation?')) return
+    setDeletingId(id)
+    setError('')
+    try {
+      const res = await fetch(`/api/donations/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        throw new Error(payload.error || 'Failed to delete donation')
+      }
+      setDonations(donations => donations.filter(d => d.id !== id))
+    } catch (err) {
+      setError(err.message || 'Failed to delete donation')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     const fetchDonations = async () => {
@@ -70,21 +90,38 @@ export default function DonationsPage() {
                 <th className="p-2">Donor</th>
                 <th className="p-2">Amount</th>
                 <th className="p-2">Pay Method</th>
+                <th className="p-2"></th>
               </tr>
             </thead>
             <tbody>
               {donations.map(d => (
-                <tr key={d.id} className="border-t">
+                <tr key={d.id} className="border-t group hover:bg-red-50/30 transition-colors">
                   <td className="p-2">{formatDate(d.date)}</td>
                   <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
                   <td className="p-2">{formatCurrency(d.amount || 0)}</td>
                   <td className="p-2">
-                    {/* Show method or placeholder */}
                     {d.method ? (
                       <Badge className="bg-blue-500 text-white">{d.method}</Badge>
                     ) : (
                       <Badge className="bg-gray-300 text-black">—</Badge>
                     )}
+                  </td>
+                  <td className="p-2 text-right">
+                    <button
+                      aria-label="Delete donation"
+                      title="Delete donation"
+                      className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
+                      onClick={() => handleDeleteDonation(d.id)}
+                      type="button"
+                      disabled={deletingId === d.id}
+                    >
+                      <span className="sr-only">Delete</span>
+                      {deletingId === d.id ? (
+                        <span className="animate-spin">⏳</span>
+                      ) : (
+                        '×'
+                      )}
+                    </button>
                   </td>
                 </tr>
               ))}
