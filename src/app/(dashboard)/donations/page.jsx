@@ -89,6 +89,7 @@ export default function DonationsPage() {
                 <th className="p-2">Date</th>
                 <th className="p-2">Donor</th>
                 <th className="p-2">Amount</th>
+                <th className="p-2">Campaign</th>
                 <th className="p-2">Pay Method</th>
                 <th className="p-2"></th>
               </tr>
@@ -99,6 +100,7 @@ export default function DonationsPage() {
                   <td className="p-2">{formatDate(d.date)}</td>
                   <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
                   <td className="p-2">{formatCurrency(d.amount || 0)}</td>
+                  <td className="p-2">{d.campaign ? d.campaign.name : '—'}</td>
                   <td className="p-2">
                     {d.method ? (
                       <Badge className="bg-blue-500 text-white">{d.method}</Badge>
