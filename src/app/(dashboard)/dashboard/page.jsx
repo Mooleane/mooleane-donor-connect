@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, RefreshCw } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { format, subDays } from 'date-fns'
@@ -15,6 +15,11 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null)
   const [recentDonations, setRecentDonations] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Insights state
+  const [insights, setInsights] = useState([])
+  const [insightsLoading, setInsightsLoading] = useState(false)
+  const [insightsError, setInsightsError] = useState('')
 
   // Tab state
   const [activeTab, setActiveTab] = useState('donors')
@@ -90,6 +95,23 @@ export default function DashboardPage() {
       setNoteError(err.message || 'Failed to save note')
     } finally {
       setNoteSaving(false)
+    }
+  }
+
+  // Fetch AI insights
+  const fetchInsights = async () => {
+    setInsightsLoading(true)
+    setInsightsError('')
+    try {
+      const res = await fetch('/api/dashboard/insights')
+      if (!res.ok) throw new Error('Failed to load insights')
+      const payload = await res.json()
+      setInsights(payload.insights || [])
+    } catch (err) {
+      console.error(err)
+      setInsightsError('Failed to generate insights')
+    } finally {
+      setInsightsLoading(false)
     }
   }
 
@@ -251,6 +273,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchSummary()
+    fetchInsights()
   }, [])
 
   // Fetch data when tab changes or pagination changes
@@ -349,6 +372,50 @@ export default function DashboardPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Recent Insights Section */}
+      <div className="bg-white rounded border p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Recent Insights</h2>
+          <Button
+            variant="outline"
+            onClick={fetchInsights}
+            disabled={insightsLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
+            Regenerate Insights
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {insightsLoading && (
+            <div className="p-4 text-center text-sm text-gray-500">
+              <RefreshCw className="h-5 w-5 animate-spin inline-block mr-2" />
+              Generating AI insights...
+            </div>
+          )}
+
+          {insightsError && (
+            <div className="p-4 text-center text-sm text-red-600">{insightsError}</div>
+          )}
+
+          {!insightsLoading && !insightsError && insights.length === 0 && (
+            <div className="p-4 text-center text-sm text-gray-500">No insights available</div>
+          )}
+
+          {!insightsLoading && !insightsError && insights.length > 0 && (
+            <ul className="space-y-2">
+              {insights.map((insight, index) => (
+                <li key={index} className="flex items-start gap-2 text-gray-700">
+                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span>{insight}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
