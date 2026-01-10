@@ -1,12 +1,13 @@
 import Link from 'next/link'
-import { Home, Users, Gift, BarChart2, Settings } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Donors', href: '/donors', icon: Users },
-  { name: 'Donations', href: '/donations', icon: Gift },
-  { name: 'Reports', href: '/reports', icon: BarChart2 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Home', href: '/' },
+  { name: 'About', href: '/about' },
+  { name: 'Why DonorConnect?', href: '/why-donor-connect' },
+  { name: 'Dashboard', href: '/dashboard' },
+  { name: 'Settings', href: '/settings' },
+  { name: "Rubric Evidence", href: "/rubric-evidence" },
+  { name: 'Reflection', href: '/reflection' },
 ]
 
 export default function Sidebar() {
@@ -22,7 +23,6 @@ export default function Sidebar() {
             href={item.href}
             className="flex items-center px-2 py-2 text-sm font-medium rounded-md hover:bg-gray-700"
           >
-            <item.icon className="w-6 h-6 mr-3" />
             {item.name}
           </Link>
         ))}
@@ -30,3 +30,4 @@ export default function Sidebar() {
     </div>
   )
 }
+
