@@ -15,7 +15,7 @@ export default function Sidebar() {
   return (
     <div className="flex flex-col w-64 bg-gray-800 text-white">
       <div className="flex items-center justify-center h-16 bg-gray-900">
-        <span className="text-xl font-bold">Donor Connect</span>
+        <span className="text-xl font-bold">DonorConnect</span>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-1">
         {navigation.map((item) => (

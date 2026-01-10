@@ -3,12 +3,27 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+const TITLE_MAP = {
+  '/': 'Home',
+  '/home': 'Home',
+  '/about': 'About',
+  '/why-donor-connect': 'Why DonorConnect?',
+  '/dashboard': 'Dashboard',
+  '/settings': 'Settings',
+  '/ai-policy': 'AI Policy & Safeguards',
+  '/rubric-evidence': 'Rubric Evidence',
+  '/reflection': 'Reflection',
+  '/donors': 'Donors',
+  '/donors/new': 'Add Donor',
+  '/donations': 'Donations',
+  '/donations/new': 'Record Donation',
+  '/register': 'Sign Up',
+  '/login': 'Login',
+}
+
 function formatTitle(pathname) {
-  if (pathname === '/' || pathname === '/home') return 'Home';
-  const parts = pathname.split('/').filter(Boolean);
-  const lastPart = parts[parts.length - 1];
-  if (!lastPart) return 'Dashboard';
-  return lastPart.charAt(0).toUpperCase() + lastPart.slice(1).replace(/-/g, ' ');
+  if (!pathname) return 'Dashboard'
+  return TITLE_MAP[pathname] || 'Dashboard'
 }
 
 export default function Topbar() {

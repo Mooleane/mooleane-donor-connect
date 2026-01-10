@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Plus, RefreshCw } from 'lucide-react'
@@ -23,6 +24,8 @@ export default function DashboardPage() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState('donors')
+
+  const searchParams = useSearchParams()
 
   // Donors tab state
   const [donors, setDonors] = useState([])
@@ -301,6 +304,16 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    // If a `tab` query param is present, set the active tab accordingly
+    try {
+      const tab = searchParams?.get?.('tab')
+      if (tab && ['donors', 'donations', 'reports'].includes(tab)) {
+        setActiveTab(tab)
+      }
+    } catch (e) {
+      // ignore
+    }
+
     fetchSummary()
     fetchInsights()
   }, [])
@@ -484,8 +497,7 @@ export default function DashboardPage() {
         {/* Donors Tab */}
         {activeTab === 'donors' && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Donors</h2>
+            <div className="flex justify-end items-center">
               <Link href="/donors/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
@@ -548,8 +560,7 @@ export default function DashboardPage() {
         {/* Donations Tab */}
         {activeTab === 'donations' && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold">Donations</h2>
+            <div className="flex justify-end items-center">
               <Link href="/donations/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
@@ -645,8 +656,6 @@ export default function DashboardPage() {
         {/* Reports Tab */}
         {activeTab === 'reports' && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-center">Reports</h2>
-
             {/* Create a Report */}
             <div className="border rounded p-4">
               <div className="font-semibold mb-2">Create a Report</div>

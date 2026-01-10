@@ -38,12 +38,6 @@ export default function Page() {
                         <li>Transparency: Insights indicate they were AI-generated, thus should be validated by staff.</li>
                         <li>Manual control: Users can regenerate AI insights at any time.</li>
                     </ul>
-
-                    <h3 className="text-xl font-medium mt-4 mb-2">Contact</h3>
-                    <p>
-                        Questions about AI usage or to request data removal should be directed to the project's administrators
-                        through your organization's support channels.
-                    </p>
                 </article>
             </section>
         </main>
