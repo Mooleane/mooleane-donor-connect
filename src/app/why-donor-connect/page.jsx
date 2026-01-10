@@ -33,7 +33,11 @@ export default function Page() {
                     </ul>
 
                     <h3 className="text-xl font-medium mt-4 mb-2">Summary of The System</h3>
-                    <p>Summary will be added later in VSCode as the implementation matures.</p>
+                    <p>
+                        The dashboard brings a quick summary of statistics and useful tools so staff spend less time analyzing the data.
+                        The donors tab allows for easy creation of new donors, and the donations tab allows for easy recording of donations.
+                        The reports tab allows for easy generation of reports, and the notes tab allows for easy creation of notes that affect AI insights.
+                    </p>
 
                     <h3 className="text-xl font-medium mt-4 mb-2">The Project Plan</h3>
                     <p>

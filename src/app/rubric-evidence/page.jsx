@@ -37,10 +37,46 @@ export default function Page() {
 
                     <h3 className="text-xl font-medium mt-6 mb-3">Direct Links</h3>
                     <ul>
-                        <li>Github</li>
-                        <li>Vercel</li>
-                        <li>Trello</li>
-                        <li>Wireframes</li>
+                        <li>
+                            <a
+                                href="https://github.com/Mooleane/mooleane-donor-connect"
+                                className="text-sky-600 hover:underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Github Repository
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="https://mooleane-donor-connect.vercel.app/home"
+                                className="text-sky-600 hover:underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Vercel Site
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="https://trello.com/invite/b/6951eb0e648e5be483733b6f/ATTIdd4da9c97a5a54f7f94af03c14ce6c740832C95D/aaron-lopez-bc2-donorconnect"
+                                className="text-sky-600 hover:underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Trello Board
+                            </a>
+                        </li>
+                        <li>
+                            <a
+                                href="https://excalidraw.com/#json=aWeeKMcF64z6b9ezgSobI,4s2SQSDgb3uK1GQwdWtFOw"
+                                className="text-sky-600 hover:underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Excalidraw Wireframes
+                            </a>
+                        </li>
                     </ul>
                 </article>
             </section>
