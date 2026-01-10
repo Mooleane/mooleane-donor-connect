@@ -8,6 +8,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { format, subDays } from 'date-fns'
 import jsPDF from 'jspdf'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 export default function DashboardPage() {
   // Dashboard summary state
@@ -35,6 +36,13 @@ export default function DashboardPage() {
   const [donationsTotal, setDonationsTotal] = useState(0)
   const donationsLimit = 10
 
+  // Notes dialog state
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false)
+  const [selectedDonation, setSelectedDonation] = useState(null)
+  const [noteText, setNoteText] = useState('')
+  const [noteSaving, setNoteSaving] = useState(false)
+  const [noteError, setNoteError] = useState('')
+
   // Reports tab state
   const today = format(new Date(), 'yyyy-MM-dd')
   const weekAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd')
@@ -44,6 +52,46 @@ export default function DashboardPage() {
   const [reportSummary, setReportSummary] = useState({ total: 0, count: 0, avg: 0 })
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState('')
+
+  // Open note dialog
+  const openNoteDialog = (donation) => {
+    setSelectedDonation(donation)
+    setNoteText(donation.notes || '')
+    setNoteError('')
+    setNoteDialogOpen(true)
+  }
+
+  // Save note
+  const saveNote = async () => {
+    if (!selectedDonation) return
+    setNoteSaving(true)
+    setNoteError('')
+    try {
+      const res = await fetch(`/api/donations/${selectedDonation.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: noteText })
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to save note')
+      }
+      const updated = await res.json()
+
+      // Update the donation in all relevant state arrays
+      setRecentDonations(prev => prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d))
+      setDonations(prev => prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d))
+      setReportDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d) : prev)
+
+      setNoteDialogOpen(false)
+      setSelectedDonation(null)
+      setNoteText('')
+    } catch (err) {
+      setNoteError(err.message || 'Failed to save note')
+    } finally {
+      setNoteSaving(false)
+    }
+  }
 
   // Fetch dashboard summary
   const fetchSummary = async () => {
@@ -262,6 +310,13 @@ export default function DashboardPage() {
             <Link href="/donations/new">
               <Button>Record Donation</Button>
             </Link>
+            <Button variant="outline" onClick={() => {
+              if (recentDonations.length > 0) {
+                openNoteDialog(recentDonations[0])
+              }
+            }} disabled={recentDonations.length === 0}>
+              Insert Note
+            </Button>
           </div>
         </div>
 
@@ -272,7 +327,7 @@ export default function DashboardPage() {
                 <th className="p-2">Date</th>
                 <th className="p-2">Donor</th>
                 <th className="p-2">Amount</th>
-                <th className="p-2">Campaign</th>
+                <th className="p-2">Notes</th>
               </tr>
             </thead>
             <tbody>
@@ -285,11 +340,11 @@ export default function DashboardPage() {
               )}
 
               {recentDonations.map(d => (
-                <tr key={d.id} className="border-t">
+                <tr key={d.id} className="border-t hover:bg-gray-50 cursor-pointer" onClick={() => openNoteDialog(d)}>
                   <td className="p-2">{new Date(d.date).toLocaleDateString()}</td>
                   <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
                   <td className="p-2">${Number(d.amount).toFixed(2)}</td>
-                  <td className="p-2">{d.campaign ? d.campaign.name : '—'}</td>
+                  <td className="p-2 text-gray-600">{d.notes || 'None'}</td>
                 </tr>
               ))}
             </tbody>
@@ -302,8 +357,8 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('donors')}
           className={`px-6 py-2 rounded border font-medium transition-colors ${activeTab === 'donors'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
             }`}
         >
           Donors
@@ -311,8 +366,8 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('donations')}
           className={`px-6 py-2 rounded border font-medium transition-colors ${activeTab === 'donations'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
             }`}
         >
           Donations
@@ -320,8 +375,8 @@ export default function DashboardPage() {
         <button
           onClick={() => setActiveTab('reports')}
           className={`px-6 py-2 rounded border font-medium transition-colors ${activeTab === 'reports'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            ? 'bg-blue-600 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
             }`}
         >
           Reports
@@ -421,18 +476,17 @@ export default function DashboardPage() {
                     <th className="p-2">Date</th>
                     <th className="p-2">Donor</th>
                     <th className="p-2">Amount</th>
-                    <th className="p-2">Campaign</th>
                     <th className="p-2">Pay Method</th>
+                    <th className="p-2">Notes</th>
                     <th className="p-2"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {donations.map(d => (
-                    <tr key={d.id} className="border-t group hover:bg-red-50/30 transition-colors">
+                    <tr key={d.id} className="border-t group hover:bg-gray-50 transition-colors">
                       <td className="p-2">{formatDate(d.date)}</td>
                       <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
                       <td className="p-2">{formatCurrency(d.amount || 0)}</td>
-                      <td className="p-2">{d.campaign ? d.campaign.name : '—'}</td>
                       <td className="p-2">
                         {d.method ? (
                           <Badge className="bg-blue-500 text-white">{d.method}</Badge>
@@ -440,12 +494,20 @@ export default function DashboardPage() {
                           <Badge className="bg-gray-300 text-black">—</Badge>
                         )}
                       </td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => openNoteDialog(d)}
+                          className="text-left text-gray-600 hover:text-blue-600 hover:underline"
+                        >
+                          {d.notes || 'Add note...'}
+                        </button>
+                      </td>
                       <td className="p-2 text-right">
                         <button
                           aria-label="Delete donation"
                           title="Delete donation"
                           className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
-                          onClick={() => handleDeleteDonation(d.id)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteDonation(d.id) }}
                           type="button"
                           disabled={deletingId === d.id}
                         >
@@ -572,6 +634,57 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Note Dialog */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent onClose={() => setNoteDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDonation?.notes ? 'Edit Note' : 'Add Note'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            {selectedDonation && (
+              <div className="mb-4 text-sm text-gray-600">
+                <p><strong>Donor:</strong> {selectedDonation.donor ? `${selectedDonation.donor.firstName} ${selectedDonation.donor.lastName}` : '—'}</p>
+                <p><strong>Amount:</strong> ${Number(selectedDonation.amount).toFixed(2)}</p>
+                <p><strong>Date:</strong> {new Date(selectedDonation.date).toLocaleDateString()}</p>
+              </div>
+            )}
+
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Note
+            </label>
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Enter a note for this donation..."
+              className="w-full border rounded-md p-3 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {noteError && (
+              <p className="text-red-600 text-sm mt-2">{noteError}</p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNoteDialogOpen(false)}
+              disabled={noteSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={saveNote}
+              disabled={noteSaving}
+            >
+              {noteSaving ? 'Saving...' : 'Save Note'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
