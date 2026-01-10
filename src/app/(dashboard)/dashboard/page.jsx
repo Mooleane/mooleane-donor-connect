@@ -98,15 +98,44 @@ export default function DashboardPage() {
     }
   }
 
-  // Fetch AI insights
-  const fetchInsights = async () => {
+  // Insights cache config
+  const INSIGHTS_CACHE_KEY = 'donorconnect_insights'
+  const INSIGHTS_CACHE_TTL = 1000 * 60 * 60 * 6 // 6 hours
+
+  // Fetch AI insights (uses localStorage cache unless `force` is true)
+  const fetchInsights = async (force = false) => {
     setInsightsLoading(true)
     setInsightsError('')
     try {
+      if (!force && typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem(INSIGHTS_CACHE_KEY)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (parsed?.insights && parsed?.generatedAt && (Date.now() - parsed.generatedAt) < INSIGHTS_CACHE_TTL) {
+              setInsights(parsed.insights)
+              setInsightsLoading(false)
+              return
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to read insights cache', e)
+        }
+      }
+
       const res = await fetch('/api/dashboard/insights')
       if (!res.ok) throw new Error('Failed to load insights')
       const payload = await res.json()
-      setInsights(payload.insights || [])
+      const insightsArr = payload.insights || []
+      setInsights(insightsArr)
+
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify({ insights: insightsArr, generatedAt: Date.now() }))
+        }
+      } catch (e) {
+        // ignore cache write failures
+      }
     } catch (err) {
       console.error(err)
       setInsightsError('Failed to generate insights')
@@ -381,7 +410,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold">Recent Insights</h2>
           <Button
             variant="outline"
-            onClick={fetchInsights}
+            onClick={() => fetchInsights(true)}
             disabled={insightsLoading}
             className="flex items-center gap-2"
           >
