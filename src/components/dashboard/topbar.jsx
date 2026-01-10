@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 function formatTitle(pathname) {
-  if (pathname === '/') return 'Home';
+  if (pathname === '/' || pathname === '/home') return 'Home';
   const parts = pathname.split('/').filter(Boolean);
   const lastPart = parts[parts.length - 1];
   if (!lastPart) return 'Dashboard';

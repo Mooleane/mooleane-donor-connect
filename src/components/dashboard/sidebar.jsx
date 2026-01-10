@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 const navigation = [
-  { name: 'Home', href: '/' },
+  { name: 'Home', href: '/home' },
   { name: 'About', href: '/about' },
   { name: 'Why DonorConnect?', href: '/why-donor-connect' },
   { name: 'Dashboard', href: '/dashboard' },

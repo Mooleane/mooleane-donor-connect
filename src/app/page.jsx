@@ -3,16 +3,12 @@ import { getSessionUser } from '@/lib/session'
 import { redirect } from 'next/navigation'
 
 export default async function HomePage() {
-  // TODO: Get current user session
-  // TODO: Redirect to dashboard if authenticated, otherwise to login
-  console.log('Welcome to Business Case 2!');
-
   const user = await getSessionUser();
 
   if (user) {
     redirect('/dashboard');
   } else {
-    redirect('/login');
+    redirect('/home');
   }
 
   return (
