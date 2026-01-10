@@ -407,7 +407,7 @@ export default function DashboardPage() {
       {/* Recent Insights Section */}
       <div className="bg-white rounded border p-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Recent Insights</h2>
+          <h2 className="text-lg font-semibold">AI Insights [This Month]</h2>
           <Button
             variant="outline"
             onClick={() => fetchInsights(true)}
@@ -415,7 +415,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
-            Regenerate Insights
+            Regenerate AI Insights
           </Button>
         </div>
 

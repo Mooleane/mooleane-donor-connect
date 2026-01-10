@@ -6,6 +6,7 @@ const navigation = [
   { name: 'Why DonorConnect?', href: '/why-donor-connect' },
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Settings', href: '/settings' },
+  { name: 'AI Policy & Safeguards', href: '/ai-policy' },
   { name: "Rubric Evidence", href: "/rubric-evidence" },
   { name: 'Reflection', href: '/reflection' },
 ]
