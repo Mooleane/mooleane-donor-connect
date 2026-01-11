@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
   // Add Donor dialog state
   const [donorDialogOpen, setDonorDialogOpen] = useState(false)
-  const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '' })
+  const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
   const [donorSaving, setDonorSaving] = useState(false)
   const [donorError, setDonorError] = useState('')
 
@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
   // Open add donor dialog
   const openDonorDialog = () => {
-    setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '' })
+    setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
     setDonorError('')
     setDonorDialogOpen(true)
   }
@@ -148,7 +148,8 @@ export default function DashboardPage() {
         lastName: donorForm.lastName?.trim() || '',
         phone: donorForm.phone?.trim() || '',
         city: donorForm.city?.trim() || '',
-        state: donorForm.state?.trim() || ''
+        state: donorForm.state?.trim() || '',
+        email: donorForm.email?.trim() || ''
       }
       const res = await fetch('/api/donors', {
         method: 'POST',
@@ -681,6 +682,7 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="text-left text-sm text-gray-600">
                     <th className="p-2">Donor</th>
+                    <th className="p-2">Email</th>
                     <th className="p-2">Phone</th>
                     <th className="p-2">City / State</th>
                     <th className="p-2">Total</th>
@@ -707,6 +709,7 @@ export default function DashboardPage() {
                     return (
                       <tr key={d.id || `donor-${idx}`} className="border-t">
                         <td className="p-2">{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</td>
+                        <td className="p-2">{d.email || '—'}</td>
                         <td className="p-2">{d.phone || '—'}</td>
                         <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
                         <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
@@ -1058,6 +1061,15 @@ export default function DashboardPage() {
                   className="w-full border rounded-md px-3 py-2"
                 />
               </div>
+            </div>
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={donorForm.email}
+                onChange={(e) => setDonorForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full border rounded-md px-3 py-2"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">State</label>

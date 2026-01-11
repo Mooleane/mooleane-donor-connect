@@ -35,7 +35,7 @@ export default function SettingsPage() {
 
       {/* Organization Info */}
       <section className="bg-white rounded border p-4">
-        <div className="font-semibold mb-2">Organization Info</div>
+        <div className="font-semibold mb-2">Organization Info [admin-only modification]</div>
         {loading ? (
           <div className="text-gray-500">Loading...</div>
         ) : error ? (
