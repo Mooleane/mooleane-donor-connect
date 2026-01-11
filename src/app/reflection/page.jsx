@@ -29,8 +29,8 @@ export default function Page() {
                     <p>
                         In-terms of DonorConnect, AI generates insights for the fundraising staff based on recent donations and patterns in the data.
                         In-terms of the app itself, it helped to generate ideas for features that would be useful for fundraising staff when I got stuck,
-                        taught me different ways to look at the issues I encountered inside of VSCode,
-                        and generally why most of the components in the app are a bit more polished than in the wireframes.
+                        taught me different ways to look at the issues I encountered inside of VSCode, and generally why most of the components in the app are a bit more visually polished than in the wireframes.
+                        Another thing it helped with was identifying errors, validation inconsistencies, and security risks in the codebase.
                     </p>
                 </article>
             </section>
