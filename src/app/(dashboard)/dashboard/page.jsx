@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, RefreshCw } from 'lucide-react'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { Plus, RefreshCw, Info } from 'lucide-react'
+import { formatCurrency, formatDate, calculateDonorRiskLevel } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+// Tooltip removed; using Dialog-based popup for explanation
 import { format, subDays } from 'date-fns'
 import jsPDF from 'jspdf'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -27,6 +28,9 @@ export default function DashboardPage() {
 
   const searchParams = useSearchParams()
 
+  // Risk info popup state
+  const [riskPopupOpen, setRiskPopupOpen] = useState(false)
+
   // Donors tab state
   const [donors, setDonors] = useState([])
   const [donorsLoading, setDonorsLoading] = useState(false)
@@ -34,6 +38,20 @@ export default function DashboardPage() {
   const [donorsPage, setDonorsPage] = useState(1)
   const [donorsTotal, setDonorsTotal] = useState(0)
   const donorsLimit = 10
+
+  // Helper function to get risk level badge styling
+  const getRiskBadgeColor = (risk) => {
+    switch (risk) {
+      case 'LOW':
+        return 'bg-green-100 text-green-800'
+      case 'MEDIUM':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'HIGH':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
 
   // Donations tab state
   const [donations, setDonations] = useState([])
@@ -666,30 +684,50 @@ export default function DashboardPage() {
                     <th className="p-2">Phone</th>
                     <th className="p-2">City / State</th>
                     <th className="p-2">Total</th>
+                    <th className="p-2">
+                      <div className="flex items-center gap-1">
+                        Risk Level
+                        <button
+                          type="button"
+                          onClick={() => setRiskPopupOpen(true)}
+                          aria-label="Risk level info"
+                          className="text-gray-400 hover:text-gray-600 ml-1"
+                        >
+                          <Info className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </th>
+                    <th className="p-2 text-right"> </th>
                     <th className="p-2 text-right"> </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {donors.map((d, idx) => (
-                    <tr key={d.id || `donor-${idx}`} className="border-t">
-                      <td className="p-2">{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</td>
-                      <td className="p-2">{d.phone || '—'}</td>
-                      <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
-                      <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
-                      <td className="p-2 text-right">
-                        <button
-                          aria-label="Delete donor"
-                          title="Delete donor"
-                          className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteDonor(d.id) }}
-                          type="button"
-                        >
-                          <span className="sr-only">Delete</span>
-                          ×
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {donors.map((d, idx) => {
+                    const riskLevel = calculateDonorRiskLevel(d)
+                    return (
+                      <tr key={d.id || `donor-${idx}`} className="border-t">
+                        <td className="p-2">{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</td>
+                        <td className="p-2">{d.phone || '—'}</td>
+                        <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
+                        <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
+                        <td className="p-2">
+                          <Badge className={getRiskBadgeColor(riskLevel)}>{riskLevel}</Badge>
+                        </td>
+                        <td className="p-2 text-right">
+                          <button
+                            aria-label="Delete donor"
+                            title="Delete donor"
+                            className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteDonor(d.id) }}
+                            type="button"
+                          >
+                            <span className="sr-only">Delete</span>
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             )}
@@ -713,191 +751,196 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-        )}
+        )
+        }
 
         {/* Donations Tab */}
-        {activeTab === 'donations' && (
-          <div className="space-y-4">
-            <div className="flex justify-end items-center">
-              <Button variant="outline" onClick={openDonationDialog}>
-                <Plus className="mr-2 h-4 w-4" />
-                Record Donation
-              </Button>
-            </div>
-
-            {donationsLoading && <div className="p-4 text-sm text-gray-500">Loading donations…</div>}
-            {donationsError && <div className="p-4 text-sm text-red-600">{donationsError}</div>}
-
-            {!donationsLoading && donations.length === 0 && (
-              <div className="p-4 text-sm text-gray-500">No donations found</div>
-            )}
-
-            {!donationsLoading && donations.length > 0 && (
-              <table className="w-full table-auto">
-                <thead>
-                  <tr className="text-left text-sm text-gray-600">
-                    <th className="p-2">Date</th>
-                    <th className="p-2">Donor</th>
-                    <th className="p-2">Amount</th>
-                    <th className="p-2">Pay Method</th>
-                    <th className="p-2">Notes</th>
-                    <th className="p-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donations.map((d, idx) => (
-                    <tr key={d.id || `donation-${idx}`} className="border-t group hover:bg-gray-50 transition-colors">
-                      <td className="p-2">{formatDate(d.date)}</td>
-                      <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
-                      <td className="p-2">{formatCurrency(d.amount || 0)}</td>
-                      <td className="p-2">
-                        {d.method ? (
-                          <Badge className="bg-blue-500 text-white">{d.method}</Badge>
-                        ) : (
-                          <Badge className="bg-gray-300 text-black">—</Badge>
-                        )}
-                      </td>
-                      <td className="p-2">
-                        <button
-                          onClick={() => openNoteDialog(d)}
-                          className="text-left text-gray-600 hover:text-blue-600 hover:underline"
-                        >
-                          {d.notes || 'Add note...'}
-                        </button>
-                      </td>
-                      <td className="p-2 text-right">
-                        <button
-                          aria-label="Delete donation"
-                          title="Delete donation"
-                          className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteDonation(d.id) }}
-                          type="button"
-                          disabled={deletingId === d.id}
-                        >
-                          <span className="sr-only">Delete</span>
-                          {deletingId === d.id ? (
-                            <span className="animate-spin">⏳</span>
-                          ) : (
-                            '×'
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* Pagination */}
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                className="px-3 py-1 rounded border disabled:opacity-50"
-                onClick={() => setDonationsPage(p => Math.max(1, p - 1))}
-                disabled={donationsPage === 1}
-              >
-                Previous
-              </button>
-              <span className="px-2">Page {donationsPage} of {Math.max(1, Math.ceil(donationsTotal / donationsLimit))}</span>
-              <button
-                className="px-3 py-1 rounded border disabled:opacity-50"
-                onClick={() => setDonationsPage(p => p + 1)}
-                disabled={donationsPage >= Math.ceil(donationsTotal / donationsLimit)}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Reports Tab */}
-        {activeTab === 'reports' && (
-          <div className="space-y-6">
-            {/* Create a Report */}
-            <div className="border rounded p-4">
-              <div className="font-semibold mb-2">Create a Report</div>
-              <div className="flex items-center gap-4 flex-wrap">
-                <label className="text-sm">Select Date Range for Report</label>
-                <input
-                  type="date"
-                  value={reportStart}
-                  max={reportEnd}
-                  onChange={e => setReportStart(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                <span>to</span>
-                <input
-                  type="date"
-                  value={reportEnd}
-                  min={reportStart}
-                  max={today}
-                  onChange={e => setReportEnd(e.target.value)}
-                  className="border rounded px-2 py-1"
-                />
-                <button onClick={fetchReport} className="px-4 py-1 bg-blue-600 text-white rounded">
-                  Generate Report
-                </button>
-              </div>
-            </div>
-
-            {/* Report Generated */}
-            <div className="border rounded p-4">
-              <div className="font-semibold mb-2">Report Generated</div>
-              {reportError && <div className="text-red-600 mb-2">{reportError}</div>}
-              <div className="flex gap-8 mb-4">
-                <div>
-                  <div className="text-sm text-gray-500">Total</div>
-                  <div className="text-xl font-bold">${reportSummary.total.toFixed(2)}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Donations</div>
-                  <div className="text-xl font-bold">{reportSummary.count}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">Avg</div>
-                  <div className="text-xl font-bold">${reportSummary.avg.toFixed(2)}</div>
-                </div>
+        {
+          activeTab === 'donations' && (
+            <div className="space-y-4">
+              <div className="flex justify-end items-center">
+                <Button variant="outline" onClick={openDonationDialog}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Record Donation
+                </Button>
               </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full table-auto border">
+              {donationsLoading && <div className="p-4 text-sm text-gray-500">Loading donations…</div>}
+              {donationsError && <div className="p-4 text-sm text-red-600">{donationsError}</div>}
+
+              {!donationsLoading && donations.length === 0 && (
+                <div className="p-4 text-sm text-gray-500">No donations found</div>
+              )}
+
+              {!donationsLoading && donations.length > 0 && (
+                <table className="w-full table-auto">
                   <thead>
-                    <tr className="bg-gray-100 text-left text-sm text-gray-600">
+                    <tr className="text-left text-sm text-gray-600">
                       <th className="p-2">Date</th>
                       <th className="p-2">Donor</th>
                       <th className="p-2">Amount</th>
-                      <th className="p-2">Status</th>
+                      <th className="p-2">Pay Method</th>
+                      <th className="p-2">Notes</th>
+                      <th className="p-2"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {reportLoading ? (
-                      <tr key="loading"><td colSpan={4} className="p-4 text-center">Loading...</td></tr>
-                    ) : reportDonations.length === 0 ? (
-                      <tr key="empty"><td colSpan={4} className="p-4 text-center">No donations found for this range.</td></tr>
-                    ) : reportDonations.map((d, idx) => (
-                      <tr key={d.id || `report-donation-${idx}`} className="border-t">
-                        <td className="p-2">{format(new Date(d.date), 'MM/dd')}</td>
-                        <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
-                        <td className="p-2">${Number(d.amount).toFixed(2)}</td>
-                        <td className="p-2">{d.status || '—'}</td>
+                    {donations.map((d, idx) => (
+                      <tr key={d.id || `donation-${idx}`} className="border-t group hover:bg-gray-50 transition-colors">
+                        <td className="p-2">{formatDate(d.date)}</td>
+                        <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
+                        <td className="p-2">{formatCurrency(d.amount || 0)}</td>
+                        <td className="p-2">
+                          {d.method ? (
+                            <Badge className="bg-blue-500 text-white">{d.method}</Badge>
+                          ) : (
+                            <Badge className="bg-gray-300 text-black">—</Badge>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => openNoteDialog(d)}
+                            className="text-left text-gray-600 hover:text-blue-600 hover:underline"
+                          >
+                            {d.notes || 'Add note...'}
+                          </button>
+                        </td>
+                        <td className="p-2 text-right">
+                          <button
+                            aria-label="Delete donation"
+                            title="Delete donation"
+                            className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteDonation(d.id) }}
+                            type="button"
+                            disabled={deletingId === d.id}
+                          >
+                            <span className="sr-only">Delete</span>
+                            {deletingId === d.id ? (
+                              <span className="animate-spin">⏳</span>
+                            ) : (
+                              '×'
+                            )}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              )}
 
-              {/* Export Buttons */}
-              <div className="flex gap-4 mt-4">
-                <button onClick={exportCSV} className="px-4 py-2 bg-gray-200 rounded">Export CSV</button>
-                <button onClick={exportPDF} className="px-4 py-2 bg-gray-200 rounded">Export PDF</button>
+              {/* Pagination */}
+              <div className="flex justify-center gap-4 mt-6">
+                <button
+                  className="px-3 py-1 rounded border disabled:opacity-50"
+                  onClick={() => setDonationsPage(p => Math.max(1, p - 1))}
+                  disabled={donationsPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="px-2">Page {donationsPage} of {Math.max(1, Math.ceil(donationsTotal / donationsLimit))}</span>
+                <button
+                  className="px-3 py-1 rounded border disabled:opacity-50"
+                  onClick={() => setDonationsPage(p => p + 1)}
+                  disabled={donationsPage >= Math.ceil(donationsTotal / donationsLimit)}
+                >
+                  Next
+                </button>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )
+        }
+
+        {/* Reports Tab */}
+        {
+          activeTab === 'reports' && (
+            <div className="space-y-6">
+              {/* Create a Report */}
+              <div className="border rounded p-4">
+                <div className="font-semibold mb-2">Create a Report</div>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <label className="text-sm">Select Date Range for Report</label>
+                  <input
+                    type="date"
+                    value={reportStart}
+                    max={reportEnd}
+                    onChange={e => setReportStart(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                  <span>to</span>
+                  <input
+                    type="date"
+                    value={reportEnd}
+                    min={reportStart}
+                    max={today}
+                    onChange={e => setReportEnd(e.target.value)}
+                    className="border rounded px-2 py-1"
+                  />
+                  <button onClick={fetchReport} className="px-4 py-1 bg-blue-600 text-white rounded">
+                    Generate Report
+                  </button>
+                </div>
+              </div>
+
+              {/* Report Generated */}
+              <div className="border rounded p-4">
+                <div className="font-semibold mb-2">Report Generated</div>
+                {reportError && <div className="text-red-600 mb-2">{reportError}</div>}
+                <div className="flex gap-8 mb-4">
+                  <div>
+                    <div className="text-sm text-gray-500">Total</div>
+                    <div className="text-xl font-bold">${reportSummary.total.toFixed(2)}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Donations</div>
+                    <div className="text-xl font-bold">{reportSummary.count}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Avg</div>
+                    <div className="text-xl font-bold">${reportSummary.avg.toFixed(2)}</div>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full table-auto border">
+                    <thead>
+                      <tr className="bg-gray-100 text-left text-sm text-gray-600">
+                        <th className="p-2">Date</th>
+                        <th className="p-2">Donor</th>
+                        <th className="p-2">Amount</th>
+                        <th className="p-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportLoading ? (
+                        <tr key="loading"><td colSpan={4} className="p-4 text-center">Loading...</td></tr>
+                      ) : reportDonations.length === 0 ? (
+                        <tr key="empty"><td colSpan={4} className="p-4 text-center">No donations found for this range.</td></tr>
+                      ) : reportDonations.map((d, idx) => (
+                        <tr key={d.id || `report-donation-${idx}`} className="border-t">
+                          <td className="p-2">{format(new Date(d.date), 'MM/dd')}</td>
+                          <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
+                          <td className="p-2">${Number(d.amount).toFixed(2)}</td>
+                          <td className="p-2">{d.status || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Export Buttons */}
+                <div className="flex gap-4 mt-4">
+                  <button onClick={exportCSV} className="px-4 py-2 bg-gray-200 rounded">Export CSV</button>
+                  <button onClick={exportPDF} className="px-4 py-2 bg-gray-200 rounded">Export PDF</button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+      </div >
 
       {/* Note Dialog */}
-      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+      < Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen} >
         <DialogContent onClose={() => setNoteDialogOpen(false)}>
           <DialogHeader>
             <DialogTitle>
@@ -945,10 +988,31 @@ export default function DashboardPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog >
+
+      {/* Risk Info Popup (Dialog) */}
+      <Dialog open={riskPopupOpen} onOpenChange={setRiskPopupOpen}>
+        <DialogContent onClose={() => setRiskPopupOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Risk Level Explanation</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 text-sm text-gray-700">
+            <p className="mb-2">Risk level is derived from two factors:</p>
+            <ul className="list-disc ml-5">
+              <li>Donation recency: less than 3 months = Low; 3–6 months = Medium; &gt;6 months = High.</li>
+              <li>Contact completeness: having a phone number reduces risk (Low vs Medium).</li>
+            </ul>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRiskPopupOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Add Donor Dialog */}
-      <Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen}>
+      < Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen} >
         <DialogContent onClose={() => setDonorDialogOpen(false)}>
           <DialogHeader>
             <DialogTitle>Add Donor</DialogTitle>
@@ -1013,10 +1077,10 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={saveDonor} disabled={donorSaving}>{donorSaving ? 'Saving...' : 'Save Donor'}</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Record Donation Dialog */}
-      <Dialog open={donationDialogOpen} onOpenChange={setDonationDialogOpen}>
+      < Dialog open={donationDialogOpen} onOpenChange={setDonationDialogOpen} >
         <DialogContent onClose={() => setDonationDialogOpen(false)}>
           <DialogHeader>
             <DialogTitle>Record Donation</DialogTitle>
@@ -1086,7 +1150,7 @@ export default function DashboardPage() {
             <Button variant="outline" onClick={saveDonation} disabled={donationSaving}>{donationSaving ? 'Saving...' : 'Save Donation'}</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+      </Dialog >
+    </div >
   )
 }

@@ -60,3 +60,28 @@ export function formatDateTime(date) {
     })
   }
 }
+
+// Calculate donor risk level based on time since last donation and contact info
+export function calculateDonorRiskLevel(donor) {
+  if (!donor) return 'UNKNOWN'
+
+  // Base risk from contact information
+  let contactRisk = donor.phone ? 'LOW' : 'MEDIUM'
+
+  // Adjust risk based on time since last donation
+  if (!donor.lastGiftDate) {
+    return 'HIGH' // No donation history
+  }
+
+  const now = new Date()
+  const lastDonationDate = new Date(donor.lastGiftDate)
+  const monthsAgo = (now - lastDonationDate) / (1000 * 60 * 60 * 24 * 30)
+
+  if (monthsAgo < 3) {
+    return contactRisk === 'LOW' ? 'LOW' : 'MEDIUM'
+  } else if (monthsAgo < 6) {
+    return 'MEDIUM'
+  } else {
+    return 'HIGH'
+  }
+}
