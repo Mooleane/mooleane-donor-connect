@@ -47,6 +47,11 @@ function DashboardPageContent() {
   const [donorsTotal, setDonorsTotal] = useState(0)
   const donorsLimit = 10
 
+  // Donors tab totals (organization-wide)
+  const [donorTotals, setDonorTotals] = useState({ totalAmount: 0, totalGifts: 0 })
+  const [donorTotalsLoading, setDonorTotalsLoading] = useState(false)
+  const [donorTotalsError, setDonorTotalsError] = useState('')
+
   // Helper function to get risk level badge styling
   const getRiskBadgeColor = (risk) => {
     switch (risk) {
@@ -416,6 +421,26 @@ function DashboardPageContent() {
     }
   }
 
+  // Fetch organization-wide donor totals (based on all donations)
+  const fetchDonorTotals = async () => {
+    setDonorTotalsLoading(true)
+    setDonorTotalsError('')
+    try {
+      const res = await fetch('/api/donations/totals')
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload.error || 'Failed to load totals')
+      setDonorTotals({
+        totalAmount: Number(payload.total || 0),
+        totalGifts: Number(payload.count || 0),
+      })
+    } catch (err) {
+      console.error(err)
+      setDonorTotalsError(err.message || 'Failed to load totals')
+    } finally {
+      setDonorTotalsLoading(false)
+    }
+  }
+
   // Fetch donations
   const fetchDonations = async () => {
     setDonationsLoading(true)
@@ -485,11 +510,13 @@ function DashboardPageContent() {
   // Export CSV
   const exportCSV = () => {
     const rows = [
-      ['Date', 'Donor', 'Amount', 'Status'],
+      ['Date', 'Donor', 'Amount', 'Donor Total Amount', 'Donor Total Gifts', 'Status'],
       ...reportDonations.map(d => [
         format(new Date(d.date), 'MM/dd'),
         d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—',
         `$${Number(d.amount).toFixed(2)}`,
+        `$${Number(d.donor?.totalAmount || 0).toFixed(2)}`,
+        String(d.donor?.totalGifts ?? 0),
         d.status || '—'
       ])
     ]
@@ -513,29 +540,33 @@ function DashboardPageContent() {
     doc.setFontSize(10)
     doc.text(`Date Range: ${reportStart} to ${reportEnd}`, 10, y)
     y += 10
-    doc.text(`Total: $${reportSummary.total.toFixed(2)}    Donations: ${reportSummary.count}    Avg: $${reportSummary.avg.toFixed(2)}`, 10, y)
+    doc.text(`Total Amount: $${reportSummary.total.toFixed(2)}    Total Gifts: ${reportSummary.count}    Avg Gift: $${reportSummary.avg.toFixed(2)}`, 10, y)
     y += 10
 
-    doc.setFontSize(12)
+    doc.setFontSize(10)
     doc.text('Date', 10, y)
-    doc.text('Donor', 40, y)
-    doc.text('Amount', 110, y)
-    doc.text('Status', 150, y)
+    doc.text('Donor', 28, y)
+    doc.text('Amount', 90, y)
+    doc.text('Donor Total', 115, y)
+    doc.text('Gifts', 155, y)
+    doc.text('Status', 180, y)
     y += 7
     doc.setLineWidth(0.1)
     doc.line(10, y, 200, y)
     y += 3
 
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     reportDonations.forEach(d => {
       if (y > 280) {
         doc.addPage()
         y = 10
       }
       doc.text(format(new Date(d.date), 'MM/dd'), 10, y)
-      doc.text(d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—', 40, y)
-      doc.text(`$${Number(d.amount).toFixed(2)}`, 110, y)
-      doc.text(d.status || '—', 150, y)
+      doc.text(d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—', 28, y)
+      doc.text(`$${Number(d.amount).toFixed(2)}`, 90, y)
+      doc.text(`$${Number(d.donor?.totalAmount || 0).toFixed(2)}`, 115, y)
+      doc.text(String(d.donor?.totalGifts ?? 0), 155, y)
+      doc.text(d.status || '—', 180, y)
       y += 7
     })
 
@@ -563,6 +594,12 @@ function DashboardPageContent() {
       fetchDonors()
     }
   }, [activeTab, donorsPage])
+
+  useEffect(() => {
+    if (activeTab === 'donors') {
+      fetchDonorTotals()
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (activeTab === 'donations') {
@@ -739,6 +776,21 @@ function DashboardPageContent() {
               </Button>
             </div>
 
+            <div className="border rounded p-4">
+              <div className="font-semibold mb-2">Donor Totals</div>
+              {donorTotalsError && <div className="text-sm text-red-600 mb-2">{donorTotalsError}</div>}
+              <div className="flex gap-8 flex-wrap">
+                <div>
+                  <div className="text-sm text-gray-500">Total Amount</div>
+                  <div className="text-xl font-bold">{donorTotalsLoading ? '—' : formatCurrency(donorTotals.totalAmount)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Total Gifts</div>
+                  <div className="text-xl font-bold">{donorTotalsLoading ? '—' : donorTotals.totalGifts}</div>
+                </div>
+              </div>
+            </div>
+
             {donorsLoading && <div className="p-4 text-sm text-gray-500">Loading donors…</div>}
             {donorsError && <div className="p-4 text-sm text-red-600">{donorsError}</div>}
 
@@ -754,7 +806,8 @@ function DashboardPageContent() {
                     <th className="p-2">Email</th>
                     <th className="p-2">Phone</th>
                     <th className="p-2">City / State</th>
-                    <th className="p-2">Total</th>
+                    <th className="p-2">Total Amount</th>
+                    <th className="p-2">Total Gifts</th>
                     <th className="p-2">
                       <div className="flex items-center gap-1">
                         Risk Level
@@ -782,6 +835,7 @@ function DashboardPageContent() {
                         <td className="p-2">{d.phone || '—'}</td>
                         <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
                         <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
+                        <td className="p-2">{d.totalGifts ?? 0}</td>
                         <td className="p-2">
                           <Badge className={getRiskBadgeColor(riskLevel)}>{riskLevel}</Badge>
                         </td>
@@ -982,15 +1036,15 @@ function DashboardPageContent() {
                 {reportError && <div className="text-red-600 mb-2">{reportError}</div>}
                 <div className="flex gap-8 mb-4">
                   <div>
-                    <div className="text-sm text-gray-500">Total</div>
+                    <div className="text-sm text-gray-500">Total Amount</div>
                     <div className="text-xl font-bold">${reportSummary.total.toFixed(2)}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Donations</div>
+                    <div className="text-sm text-gray-500">Total Gifts</div>
                     <div className="text-xl font-bold">{reportSummary.count}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-gray-500">Avg</div>
+                    <div className="text-sm text-gray-500">Avg Gift</div>
                     <div className="text-xl font-bold">${reportSummary.avg.toFixed(2)}</div>
                   </div>
                 </div>
@@ -1003,19 +1057,23 @@ function DashboardPageContent() {
                         <th className="p-2">Date</th>
                         <th className="p-2">Donor</th>
                         <th className="p-2">Amount</th>
+                        <th className="p-2">Donor Total Amount</th>
+                        <th className="p-2">Donor Total Gifts</th>
                         <th className="p-2">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {reportLoading ? (
-                        <tr key="loading"><td colSpan={4} className="p-4 text-center">Loading...</td></tr>
+                        <tr key="loading"><td colSpan={6} className="p-4 text-center">Loading...</td></tr>
                       ) : reportDonations.length === 0 ? (
-                        <tr key="empty"><td colSpan={4} className="p-4 text-center">No donations found for this range.</td></tr>
+                        <tr key="empty"><td colSpan={6} className="p-4 text-center">No donations found for this range.</td></tr>
                       ) : reportDonations.map((d, idx) => (
                         <tr key={d.id || `report-donation-${idx}`} className="border-t">
                           <td className="p-2">{format(new Date(d.date), 'MM/dd')}</td>
                           <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
                           <td className="p-2">${Number(d.amount).toFixed(2)}</td>
+                          <td className="p-2">${Number(d.donor?.totalAmount || 0).toFixed(2)}</td>
+                          <td className="p-2">{d.donor?.totalGifts ?? 0}</td>
                           <td className="p-2">{d.status || '—'}</td>
                         </tr>
                       ))}
