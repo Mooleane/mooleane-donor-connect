@@ -36,7 +36,7 @@ pnpm-debug.log*
 next-env.d.ts
 
 # prisma
-/prisma/migrations
+# /prisma/migrations
 
 # playwright
 /test-results/
