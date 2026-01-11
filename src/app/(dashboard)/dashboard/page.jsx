@@ -231,6 +231,9 @@ function DashboardPageContent() {
       setDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donorId !== id) : prev)
       setRecentDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donor?.id !== id && r.donorId !== id) : prev)
       setReportDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donorId !== id) : prev)
+
+      // Keep donors totals in sync after deleting donor + donations
+      fetchDonorTotals()
     } catch (err) {
       setDonorsError(err.message || 'Failed to delete donor')
     }
