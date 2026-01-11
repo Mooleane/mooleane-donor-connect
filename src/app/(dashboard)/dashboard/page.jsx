@@ -197,6 +197,21 @@ export default function DashboardPage() {
 
   // Save donation
   const saveDonation = async () => {
+    if (!donationForm.date) {
+      setDonationError('Please select a valid date for the donation.')
+      return
+    }
+
+    if (!donationForm.amount || isNaN(donationForm.amount) || Number(donationForm.amount) <= 0) {
+      setDonationError('Please enter a valid donation amount greater than 0.')
+      return
+    }
+
+    if (!donationForm.method?.trim()) {
+      setDonationError('Please provide a payment method for the donation.')
+      return
+    }
+
     setDonationSaving(true)
     setDonationError('')
     try {
