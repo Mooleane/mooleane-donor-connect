@@ -34,9 +34,9 @@ export default function Page() {
 
                     <h3 className="text-xl font-medium mt-4 mb-2">Safeguards &amp; Limitations</h3>
                     <ul>
-                        <li>Anonymization: PII is stripped before sending data to the model.</li>
-                        <li>Transparency: Insights indicate they were AI-generated, thus should be validated by staff.</li>
-                        <li>Manual control: Users can regenerate AI insights at any time.</li>
+                        <li>- Anonymization: PII is stripped before sending data to the model.</li>
+                        <li>- Transparency: Insights indicate they were AI-generated, thus should be validated by staff.</li>
+                        <li>- Manual control: Users can regenerate AI insights at any time.</li>
                     </ul>
                 </article>
             </section>
