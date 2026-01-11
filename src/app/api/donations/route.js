@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { createDonationSchema, donationListQuerySchema } from '@/lib/validation/donation-schema'
 
 export async function GET(request) {
   try {
@@ -10,10 +11,15 @@ export async function GET(request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(request.url)
-    const start = url.searchParams.get('start')
-    const end = url.searchParams.get('end')
-    const limitParam = url.searchParams.get('limit')
-    const pageParam = url.searchParams.get('page')
+    const query = Object.fromEntries(url.searchParams.entries())
+    const parsedQuery = donationListQuerySchema.safeParse(query)
+    if (!parsedQuery.success) {
+      return NextResponse.json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() }, { status: 400 })
+    }
+
+    const start = parsedQuery.data.start
+    const end = parsedQuery.data.end
+    const isPaginated = Object.prototype.hasOwnProperty.call(query, 'limit') || Object.prototype.hasOwnProperty.call(query, 'page')
 
     const where = { donor: { organizationId: session.user.organizationId } }
     if (start && end) {
@@ -24,9 +30,9 @@ export async function GET(request) {
     }
 
     // If paginated, return object; if not, return array for reports page compatibility
-    if (limitParam || pageParam) {
-      const limit = parseInt(limitParam || '10', 10)
-      const page = parseInt(pageParam || '1', 10)
+    if (isPaginated) {
+      const limit = parsedQuery.data.limit
+      const page = parsedQuery.data.page
       const skip = (Math.max(page, 1) - 1) * Math.max(limit, 1)
       const [donations, total] = await Promise.all([
         prisma.donation.findMany({
@@ -60,12 +66,13 @@ export async function POST(request) {
     const session = await getSession(sessionToken)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json()
-    const { donorId, amount, date, campaignId, type, method, notes } = body
-
-    if (!donorId || !amount || !date) {
-      return NextResponse.json({ error: 'donorId, amount and date are required' }, { status: 400 })
+    const body = await request.json().catch(() => null)
+    const parsedBody = createDonationSchema.safeParse(body)
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parsedBody.error.flatten() }, { status: 400 })
     }
+
+    const { donorId, amount, date, campaignId, type, method, notes } = parsedBody.data
 
     // Verify donor belongs to organization
     const donor = await prisma.donor.findUnique({ where: { id: donorId } })
@@ -74,17 +81,17 @@ export async function POST(request) {
     }
 
     // Create donation and update donor metrics in a transaction
-    const donationDate = new Date(date)
+    const donationDate = date
     const result = await prisma.$transaction(async (tx) => {
       const donation = await tx.donation.create({
         data: {
           donorId,
-          campaignId,
-          amount: Number(amount),
+          campaignId: campaignId && String(campaignId).trim() !== '' ? campaignId : null,
+          amount,
           date: donationDate,
           type,
-          method,
-          notes,
+          method: method ? String(method).trim() : null,
+          notes: notes ? String(notes) : null,
         },
         include: { donor: true, campaign: true },
       })
@@ -94,7 +101,7 @@ export async function POST(request) {
         where: { id: donorId },
         data: {
           totalGifts: { increment: 1 },
-          totalAmount: { increment: Number(amount) },
+          totalAmount: { increment: amount },
           lastGiftDate: donationDate,
           firstGiftDate: donor.firstGiftDate ? donor.firstGiftDate : donationDate,
         },

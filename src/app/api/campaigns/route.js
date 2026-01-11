@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { campaignListQuerySchema, createCampaignSchema } from '@/lib/validation/campaign-schema'
 
 export async function GET(request) {
   try {
@@ -9,14 +10,33 @@ export async function GET(request) {
     const session = await getSession(sessionToken)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    // For now, return all campaigns for the organization
-    const campaigns = await prisma.campaign.findMany({
-      where: { organizationId: session.user.organizationId },
-      orderBy: { name: 'asc' },
-      take: 200,
-    })
+    const url = new URL(request.url)
+    const query = Object.fromEntries(url.searchParams.entries())
+    const parsedQuery = campaignListQuerySchema.safeParse(query)
+    if (!parsedQuery.success) {
+      return NextResponse.json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() }, { status: 400 })
+    }
 
-    return NextResponse.json({ campaigns })
+    const { page, limit, search, status, sortBy, sortOrder } = parsedQuery.data
+    const where = { organizationId: session.user.organizationId }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+    if (status) where.status = status
+
+    const skip = (Math.max(page, 1) - 1) * limit
+    const take = limit
+    const orderBy = { [sortBy]: sortOrder }
+
+    const [campaigns, total] = await Promise.all([
+      prisma.campaign.findMany({ where, orderBy, skip, take }),
+      prisma.campaign.count({ where }),
+    ])
+
+    return NextResponse.json({ campaigns, pagination: { page, limit, total } })
   } catch (error) {
     console.error('GET /api/campaigns error', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -29,14 +49,27 @@ export async function POST(request) {
     const session = await getSession(sessionToken)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json()
-    const { name, notes } = body
-    if (!name || name.trim() === '') return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+    const rawBody = await request.json().catch(() => null)
+    const body = rawBody && typeof rawBody === 'object' ? { ...rawBody } : rawBody
+    // Back-compat: allow `notes` as an alias for `description`
+    if (body && body.notes && !body.description) body.description = body.notes
+
+    const parsedBody = createCampaignSchema.safeParse(body)
+    if (!parsedBody.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parsedBody.error.flatten() }, { status: 400 })
+    }
+
+    const { name, description, goal, startDate, endDate, type, status } = parsedBody.data
 
     const campaign = await prisma.campaign.create({
       data: {
         name: name.trim(),
-        notes: notes || null,
+        description: description ? String(description) : null,
+        goal: goal ?? null,
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+        type: type ? String(type).trim() : null,
+        status,
         organizationId: session.user.organizationId,
       },
     })

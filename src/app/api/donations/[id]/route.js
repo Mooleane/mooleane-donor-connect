@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { recalculateDonorTotals } from '@/lib/api/recalculate-donor-totals'
+import { updateDonationSchema } from '@/lib/validation/donation-schema'
 
 export async function GET(request, context) {
   try {
@@ -56,17 +57,22 @@ export async function PATCH(request, context) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    const body = await request.json()
-    const { notes, amount, date, campaignId, type, method } = body
+    const body = await request.json().catch(() => null)
+    const parsed = updateDonationSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const { notes, amount, date, campaignId, type, method } = parsed.data
 
     // Build update data - only include fields that are provided
     const updateData = {}
-    if (notes !== undefined) updateData.notes = notes
-    if (amount !== undefined) updateData.amount = Number(amount)
-    if (date !== undefined) updateData.date = new Date(date)
-    if (campaignId !== undefined) updateData.campaignId = campaignId
+    if (notes !== undefined) updateData.notes = notes === null ? null : String(notes)
+    if (amount !== undefined) updateData.amount = amount
+    if (date !== undefined) updateData.date = date
+    if (campaignId !== undefined) updateData.campaignId = campaignId && String(campaignId).trim() !== '' ? campaignId : null
     if (type !== undefined) updateData.type = type
-    if (method !== undefined) updateData.method = method
+    if (method !== undefined) updateData.method = method === null ? null : String(method).trim()
 
     const updated = await prisma.donation.update({
       where: { id },
@@ -111,10 +117,10 @@ export async function DELETE(request, context) {
     }
 
     await prisma.donation.delete({ where: { id } })
-    
+
     // Recalculate donor totals after deletion
     await recalculateDonorTotals(donation.donorId)
-    
+
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/donations/[id] error', error)

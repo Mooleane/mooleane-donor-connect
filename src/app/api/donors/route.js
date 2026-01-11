@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { createDonorSchema, donorListQuerySchema } from '@/lib/validation/donor-schema'
 
 export async function GET(request) {
   try {
@@ -10,12 +11,13 @@ export async function GET(request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(request.url)
-    const sort = url.searchParams.get('sort') || ''
-    const page = parseInt(url.searchParams.get('page') || '1', 10)
-    const limit = parseInt(url.searchParams.get('limit') || '200', 10)
-    const search = url.searchParams.get('search') || ''
-    const status = url.searchParams.get('status') || ''
-    const retentionRisk = url.searchParams.get('retentionRisk') || ''
+    const query = Object.fromEntries(url.searchParams.entries())
+    const parsedQuery = donorListQuerySchema.safeParse(query)
+    if (!parsedQuery.success) {
+      return NextResponse.json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() }, { status: 400 })
+    }
+
+    const { sort, page, limit, search, status, retentionRisk } = parsedQuery.data
 
     // Support sorting by total amount descending for ranking donors by total given
     const orderBy = sort === 'totalDesc' ? { totalAmount: 'desc' } : { lastName: 'asc' }
@@ -55,34 +57,50 @@ export async function POST(request) {
     const session = await getSession(sessionToken)
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const body = await request.json()
-    const { type, firstName, lastName, organizationName, email, phone, city, state } = body
+    const body = await request.json().catch(() => null)
+    const parsedBody = createDonorSchema.safeParse(body)
+    if (!parsedBody.success) {
+      const firstIssue = parsedBody.error.issues?.[0]
+      const field = firstIssue?.path?.length ? firstIssue.path.join('.') : 'request'
+      const message = firstIssue?.message || 'Invalid request body'
+      return NextResponse.json({ error: `${field}: ${message}`, details: parsedBody.error.flatten() }, { status: 400 })
+    }
+
+    const {
+      type,
+      firstName,
+      lastName,
+      organizationName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      zipCode,
+      status,
+      retentionRisk,
+    } = parsedBody.data
 
     // Permission check: only STAFF or ADMIN can create donors
     const role = session.user.role || 'STAFF'
     if (role === 'READONLY') return NextResponse.json({ error: 'Insufficient permission to create donor' }, { status: 403 })
 
-    if (type === 'organization') {
-      if (!organizationName) return NextResponse.json({ error: 'organizationName is required' }, { status: 400 })
-    } else {
-      if (!firstName) return NextResponse.json({ error: 'firstName is required' }, { status: 400 })
-    }
-
-    // Basic email validation if provided
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (email && !emailRegex.test(email)) return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    const normalizedFirstName = type === 'organization' ? (organizationName || '') : (firstName || '')
+    const normalizedLastName = type === 'organization' ? '' : (lastName || '')
 
     const donor = await prisma.donor.create({
       data: {
         organizationId: session.user.organizationId,
-        firstName: type === 'organization' ? organizationName : firstName,
-        lastName: type === 'organization' ? '' : (lastName || ''),
-        email: email || null,
-        phone: phone || null,
-        city: city || null,
-        state: state || null,
-        status: 'ACTIVE',
-        retentionRisk: 'UNKNOWN',
+        firstName: normalizedFirstName.trim(),
+        lastName: normalizedLastName.trim(),
+        email: email ? String(email).trim() : null,
+        phone: phone ? String(phone).trim() : null,
+        address: address ? String(address).trim() : null,
+        city: city ? String(city).trim() : null,
+        state: state ? String(state).trim() : null,
+        zipCode: zipCode ? String(zipCode).trim() : null,
+        status: status || 'ACTIVE',
+        retentionRisk: retentionRisk || 'UNKNOWN',
       },
     })
 
