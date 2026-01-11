@@ -51,6 +51,18 @@ export default function DashboardPage() {
   const [noteSaving, setNoteSaving] = useState(false)
   const [noteError, setNoteError] = useState('')
 
+  // Add Donor dialog state
+  const [donorDialogOpen, setDonorDialogOpen] = useState(false)
+  const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '' })
+  const [donorSaving, setDonorSaving] = useState(false)
+  const [donorError, setDonorError] = useState('')
+
+  // Record Donation dialog state
+  const [donationDialogOpen, setDonationDialogOpen] = useState(false)
+  const [donationForm, setDonationForm] = useState({ donorId: '', amount: '', method: '', date: '', notes: '' })
+  const [donationSaving, setDonationSaving] = useState(false)
+  const [donationError, setDonationError] = useState('')
+
   // Reports tab state
   const today = format(new Date(), 'yyyy-MM-dd')
   const weekAgo = format(subDays(new Date(), 6), 'yyyy-MM-dd')
@@ -98,6 +110,96 @@ export default function DashboardPage() {
       setNoteError(err.message || 'Failed to save note')
     } finally {
       setNoteSaving(false)
+    }
+  }
+
+  // Open add donor dialog
+  const openDonorDialog = () => {
+    setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '' })
+    setDonorError('')
+    setDonorDialogOpen(true)
+  }
+
+  // Save donor
+  const saveDonor = async () => {
+    setDonorSaving(true)
+    setDonorError('')
+    try {
+      const payload = {
+        firstName: donorForm.firstName?.trim() || '',
+        lastName: donorForm.lastName?.trim() || '',
+        phone: donorForm.phone?.trim() || '',
+        city: donorForm.city?.trim() || '',
+        state: donorForm.state?.trim() || ''
+      }
+      const res = await fetch('/api/donors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to add donor')
+
+      // Prepend to donors list if available
+      setDonors(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      setDonorDialogOpen(false)
+    } catch (e) {
+      setDonorError(e.message || 'Failed to add donor')
+    } finally {
+      setDonorSaving(false)
+    }
+  }
+
+  // Ensure donor options when opening donation dialog
+  const ensureDonorOptions = async () => {
+    try {
+      if (!Array.isArray(donors) || donors.length === 0) {
+        const res = await fetch('/api/donors?limit=50')
+        const data = await res.json().catch(() => ({}))
+        if (res.ok) {
+          setDonors(data.donors || data || [])
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Open record donation dialog
+  const openDonationDialog = async () => {
+    setDonationForm({ donorId: '', amount: '', method: '', date: today, notes: '' })
+    setDonationError('')
+    setDonationDialogOpen(true)
+    await ensureDonorOptions()
+  }
+
+  // Save donation
+  const saveDonation = async () => {
+    setDonationSaving(true)
+    setDonationError('')
+    try {
+      const payload = {
+        donorId: donationForm.donorId,
+        amount: Number(donationForm.amount || 0),
+        method: donationForm.method?.trim() || '',
+        date: donationForm.date,
+        notes: donationForm.notes || ''
+      }
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to record donation')
+
+      setDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      setRecentDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      setDonationDialogOpen(false)
+    } catch (e) {
+      setDonationError(e.message || 'Failed to record donation')
+    } finally {
+      setDonationSaving(false)
     }
   }
 
@@ -369,12 +471,8 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Recent Donations</h2>
           <div className="space-x-2">
-            <Link href="/donors/new">
-              <Button>Add Donor</Button>
-            </Link>
-            <Link href="/donations/new">
-              <Button>Record Donation</Button>
-            </Link>
+            <Button variant="outline" onClick={openDonorDialog}>Add Donor</Button>
+            <Button variant="outline" onClick={openDonationDialog}>Record Donation</Button>
             <Button variant="outline" onClick={() => {
               if (recentDonations.length > 0) {
                 openNoteDialog(recentDonations[0])
@@ -498,12 +596,10 @@ export default function DashboardPage() {
         {activeTab === 'donors' && (
           <div className="space-y-4">
             <div className="flex justify-end items-center">
-              <Link href="/donors/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Donor
-                </Button>
-              </Link>
+              <Button variant="outline" onClick={openDonorDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Donor
+              </Button>
             </div>
 
             {donorsLoading && <div className="p-4 text-sm text-gray-500">Loading donors…</div>}
@@ -561,12 +657,10 @@ export default function DashboardPage() {
         {activeTab === 'donations' && (
           <div className="space-y-4">
             <div className="flex justify-end items-center">
-              <Link href="/donations/new">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Record Donation
-                </Button>
-              </Link>
+              <Button variant="outline" onClick={openDonationDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Record Donation
+              </Button>
             </div>
 
             {donationsLoading && <div className="p-4 text-sm text-gray-500">Loading donations…</div>}
@@ -787,6 +881,147 @@ export default function DashboardPage() {
             >
               {noteSaving ? 'Saving...' : 'Save Note'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Donor Dialog */}
+      <Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen}>
+        <DialogContent onClose={() => setDonorDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Add Donor</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                <input
+                  type="text"
+                  value={donorForm.firstName}
+                  onChange={(e) => setDonorForm(f => ({ ...f, firstName: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                <input
+                  type="text"
+                  value={donorForm.lastName}
+                  onChange={(e) => setDonorForm(f => ({ ...f, lastName: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                <input
+                  type="tel"
+                  value={donorForm.phone}
+                  onChange={(e) => setDonorForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <input
+                  type="text"
+                  value={donorForm.city}
+                  onChange={(e) => setDonorForm(f => ({ ...f, city: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input
+                type="text"
+                value={donorForm.state}
+                onChange={(e) => setDonorForm(f => ({ ...f, state: e.target.value }))}
+                className="w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            {donorError && <p className="text-red-600 text-sm">{donorError}</p>}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDonorDialogOpen(false)} disabled={donorSaving}>Cancel</Button>
+            <Button onClick={saveDonor} disabled={donorSaving}>{donorSaving ? 'Saving...' : 'Save Donor'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Record Donation Dialog */}
+      <Dialog open={donationDialogOpen} onOpenChange={setDonationDialogOpen}>
+        <DialogContent onClose={() => setDonationDialogOpen(false)}>
+          <DialogHeader>
+            <DialogTitle>Record Donation</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Donor</label>
+              <select
+                value={donationForm.donorId}
+                onChange={(e) => setDonationForm(f => ({ ...f, donorId: e.target.value }))}
+                className="w-full border rounded-md px-3 py-2"
+              >
+                <option value="">Select a donor…</option>
+                {Array.isArray(donors) && donors.map(d => (
+                  <option key={d.id} value={d.id}>{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={donationForm.amount}
+                  onChange={(e) => setDonationForm(f => ({ ...f, amount: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <input
+                  type="text"
+                  value={donationForm.method}
+                  onChange={(e) => setDonationForm(f => ({ ...f, method: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={donationForm.date}
+                  onChange={(e) => setDonationForm(f => ({ ...f, date: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <input
+                  type="text"
+                  value={donationForm.notes}
+                  onChange={(e) => setDonationForm(f => ({ ...f, notes: e.target.value }))}
+                  className="w-full border rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+
+            {donationError && <p className="text-red-600 text-sm">{donationError}</p>}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDonationDialogOpen(false)} disabled={donationSaving}>Cancel</Button>
+            <Button onClick={saveDonation} disabled={donationSaving}>{donationSaving ? 'Saving...' : 'Save Donation'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
