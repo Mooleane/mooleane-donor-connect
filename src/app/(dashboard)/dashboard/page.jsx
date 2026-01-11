@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, RefreshCw, Info } from 'lucide-react'
+import { Plus, RefreshCw, Info, Edit2 } from 'lucide-react'
 import { formatCurrency, formatDate, calculateDonorRiskLevel } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 // Tooltip removed; using Dialog-based popup for explanation
@@ -69,14 +69,16 @@ export default function DashboardPage() {
   const [noteSaving, setNoteSaving] = useState(false)
   const [noteError, setNoteError] = useState('')
 
-  // Add Donor dialog state
+  // Add/Edit Donor dialog state
   const [donorDialogOpen, setDonorDialogOpen] = useState(false)
+  const [editingDonorId, setEditingDonorId] = useState(null)
   const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
   const [donorSaving, setDonorSaving] = useState(false)
   const [donorError, setDonorError] = useState('')
 
-  // Record Donation dialog state
+  // Record/Edit Donation dialog state
   const [donationDialogOpen, setDonationDialogOpen] = useState(false)
+  const [editingDonationId, setEditingDonationId] = useState(null)
   const [donationForm, setDonationForm] = useState({ donorId: '', amount: '', method: '', date: '', notes: '' })
   const [donationSaving, setDonationSaving] = useState(false)
   const [donationError, setDonationError] = useState('')
@@ -131,14 +133,27 @@ export default function DashboardPage() {
     }
   }
 
-  // Open add donor dialog
-  const openDonorDialog = () => {
-    setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
+  // Open add/edit donor dialog
+  const openDonorDialog = (donor = null) => {
+    if (donor) {
+      setEditingDonorId(donor.id)
+      setDonorForm({
+        firstName: donor.firstName || '',
+        lastName: donor.lastName || '',
+        phone: donor.phone || '',
+        city: donor.city || '',
+        state: donor.state || '',
+        email: donor.email || ''
+      })
+    } else {
+      setEditingDonorId(null)
+      setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
+    }
     setDonorError('')
     setDonorDialogOpen(true)
   }
 
-  // Save donor
+  // Save donor (add or edit)
   const saveDonor = async () => {
     setDonorSaving(true)
     setDonorError('')
@@ -151,21 +166,38 @@ export default function DashboardPage() {
         state: donorForm.state?.trim() || '',
         email: donorForm.email?.trim() || ''
       }
-      const res = await fetch('/api/donors', {
-        method: 'POST',
+      // If a phone number is provided, only allow digits, spaces, and dashes
+      if (payload.phone && !/^[0-9\s-]+$/.test(payload.phone)) {
+        setDonorError('Phone number may only contain digits, spaces, and dashes.')
+        setDonorSaving(false)
+        return
+      }
+
+      const method = editingDonorId ? 'PATCH' : 'POST'
+      const url = editingDonorId ? `/api/donors/${editingDonorId}` : '/api/donors'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Failed to add donor')
+      if (!res.ok) throw new Error(data.error || `Failed to ${editingDonorId ? 'update' : 'add'} donor`)
 
-      const created = data?.donor || data
+      const updated = data?.donor || data
 
-      // Prepend to donors list if available
-      setDonors(prev => Array.isArray(prev) ? [created, ...prev] : [created])
+      if (editingDonorId) {
+        // Update the donor in the list
+        setDonors(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? updated : d) : [updated])
+      } else {
+        // Prepend new donor to list
+        setDonors(prev => Array.isArray(prev) ? [updated, ...prev] : [updated])
+      }
+
       setDonorDialogOpen(false)
+      setEditingDonorId(null)
     } catch (e) {
-      setDonorError(e.message || 'Failed to add donor')
+      setDonorError(e.message || `Failed to ${editingDonorId ? 'update' : 'add'} donor`)
     } finally {
       setDonorSaving(false)
     }
@@ -206,15 +238,27 @@ export default function DashboardPage() {
     }
   }
 
-  // Open record donation dialog
-  const openDonationDialog = async () => {
-    setDonationForm({ donorId: '', amount: '', method: '', date: today, notes: '' })
+  // Open record/edit donation dialog
+  const openDonationDialog = async (donation = null) => {
+    if (donation) {
+      setEditingDonationId(donation.id)
+      setDonationForm({
+        donorId: donation.donorId || '',
+        amount: String(donation.amount || ''),
+        method: donation.method || '',
+        date: donation.date ? donation.date.split('T')[0] : today,
+        notes: donation.notes || ''
+      })
+    } else {
+      setEditingDonationId(null)
+      setDonationForm({ donorId: '', amount: '', method: '', date: today, notes: '' })
+    }
     setDonationError('')
     setDonationDialogOpen(true)
     await ensureDonorOptions()
   }
 
-  // Save donation
+  // Save donation (add or edit)
   const saveDonation = async () => {
     if (!donationForm.date) {
       setDonationError('Please select a valid date for the donation.')
@@ -241,16 +285,31 @@ export default function DashboardPage() {
         date: donationForm.date,
         notes: donationForm.notes || ''
       }
-      const res = await fetch('/api/donations', {
-        method: 'POST',
+
+      const method = editingDonationId ? 'PATCH' : 'POST'
+      const url = editingDonationId ? `/api/donations/${editingDonationId}` : '/api/donations'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data.error || 'Failed to record donation')
+      if (!res.ok) throw new Error(data.error || `Failed to ${editingDonationId ? 'update' : 'record'} donation`)
 
-      setDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
-      setRecentDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      const updated = editingDonationId ? data : data
+
+      if (editingDonationId) {
+        // Update the donation in all relevant state arrays
+        setRecentDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? updated : d) : prev)
+        setDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? updated : d) : prev)
+        setReportDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? updated : d) : prev)
+      } else {
+        // Prepend new donation
+        setDonations(prev => Array.isArray(prev) ? [updated, ...prev] : [updated])
+        setRecentDonations(prev => Array.isArray(prev) ? [updated, ...prev] : [updated])
+      }
+
       // Refresh donors list to get updated totals
       if (activeTab === 'donors') {
         fetchDonors()
@@ -259,9 +318,11 @@ export default function DashboardPage() {
       if (activeTab === 'donations') {
         fetchDonations()
       }
+
       setDonationDialogOpen(false)
+      setEditingDonationId(null)
     } catch (e) {
-      setDonationError(e.message || 'Failed to record donation')
+      setDonationError(e.message || `Failed to ${editingDonationId ? 'update' : 'record'} donation`)
     } finally {
       setDonationSaving(false)
     }
@@ -699,8 +760,8 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </th>
-                    <th className="p-2 text-right"> </th>
-                    <th className="p-2 text-right"> </th>
+                    <th className="p-2 text-right">Edit</th>
+                    <th className="p-2 text-right">Delete</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -715,6 +776,17 @@ export default function DashboardPage() {
                         <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
                         <td className="p-2">
                           <Badge className={getRiskBadgeColor(riskLevel)}>{riskLevel}</Badge>
+                        </td>
+                        <td className="p-2 text-right">
+                          <button
+                            aria-label="Edit donor"
+                            title="Edit donor"
+                            className="text-blue-500 hover:text-white hover:bg-blue-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition inline-flex"
+                            onClick={(e) => { e.stopPropagation(); openDonorDialog(d) }}
+                            type="button"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
                         </td>
                         <td className="p-2 text-right">
                           <button
@@ -784,7 +856,8 @@ export default function DashboardPage() {
                       <th className="p-2">Amount</th>
                       <th className="p-2">Pay Method</th>
                       <th className="p-2">Notes</th>
-                      <th className="p-2"></th>
+                      <th className="p-2">Edit</th>
+                      <th className="p-2">Delete</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -806,6 +879,17 @@ export default function DashboardPage() {
                             className="text-left text-gray-600 hover:text-blue-600 hover:underline"
                           >
                             {d.notes || 'Add note...'}
+                          </button>
+                        </td>
+                        <td className="p-2 text-right">
+                          <button
+                            aria-label="Edit donation"
+                            title="Edit donation"
+                            className="text-blue-500 hover:text-white hover:bg-blue-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition inline-flex"
+                            onClick={(e) => { e.stopPropagation(); openDonationDialog(d) }}
+                            type="button"
+                          >
+                            <Edit2 className="w-4 h-4" />
                           </button>
                         </td>
                         <td className="p-2 text-right">
@@ -1004,7 +1088,7 @@ export default function DashboardPage() {
             <p className="mb-2">Risk level is derived from two factors:</p>
             <ul className="list-disc ml-5">
               <li>Donation recency: less than 3 months = Low; 3–6 months = Medium; &gt;6 months = High.</li>
-              <li>Contact completeness: having a phone number reduces risk (Low vs Medium).</li>
+              <li>Contact completeness: having a phone number or email address reduces risk (Low vs Medium).</li>
             </ul>
           </div>
 
@@ -1014,11 +1098,11 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Donor Dialog */}
+      {/* Add/Edit Donor Dialog */}
       < Dialog open={donorDialogOpen} onOpenChange={setDonorDialogOpen} >
         <DialogContent onClose={() => setDonorDialogOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Add Donor</DialogTitle>
+            <DialogTitle>{editingDonorId ? `Edit ${donorForm.firstName || 'Donor'} ${donorForm.lastName || ''}`.trim() : 'Add Donor'}</DialogTitle>
           </DialogHeader>
 
           <div className="py-4 space-y-3">
@@ -1086,16 +1170,16 @@ export default function DashboardPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDonorDialogOpen(false)} disabled={donorSaving}>Cancel</Button>
-            <Button variant="outline" onClick={saveDonor} disabled={donorSaving}>{donorSaving ? 'Saving...' : 'Save Donor'}</Button>
+            <Button variant="outline" onClick={saveDonor} disabled={donorSaving}>{donorSaving ? (editingDonorId ? 'Updating...' : 'Saving...') : (editingDonorId ? 'Update Donor' : 'Save Donor')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog >
 
-      {/* Record Donation Dialog */}
+      {/* Record/Edit Donation Dialog */}
       < Dialog open={donationDialogOpen} onOpenChange={setDonationDialogOpen} >
         <DialogContent onClose={() => setDonationDialogOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Record Donation</DialogTitle>
+            <DialogTitle>{editingDonationId ? `Edit Donation` : 'Record Donation'}</DialogTitle>
           </DialogHeader>
 
           <div className="py-4 space-y-3">
@@ -1159,7 +1243,7 @@ export default function DashboardPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDonationDialogOpen(false)} disabled={donationSaving}>Cancel</Button>
-            <Button variant="outline" onClick={saveDonation} disabled={donationSaving}>{donationSaving ? 'Saving...' : 'Save Donation'}</Button>
+            <Button variant="outline" onClick={saveDonation} disabled={donationSaving}>{donationSaving ? (editingDonationId ? 'Updating...' : 'Recording...') : (editingDonationId ? 'Update Donation' : 'Record Donation')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog >

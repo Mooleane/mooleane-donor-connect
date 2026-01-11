@@ -65,8 +65,8 @@ export function formatDateTime(date) {
 export function calculateDonorRiskLevel(donor) {
   if (!donor) return 'UNKNOWN'
 
-  // Base risk from contact information
-  let contactRisk = donor.phone ? 'LOW' : 'MEDIUM'
+  // Base risk from contact information (phone or email counts as complete contact info)
+  let contactRisk = donor.phone || donor.email ? 'LOW' : 'MEDIUM'
 
   // Adjust risk based on time since last donation
   if (!donor.lastGiftDate) {
