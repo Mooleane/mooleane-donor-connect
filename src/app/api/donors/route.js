@@ -18,10 +18,10 @@ export async function GET(request) {
       return jsonError('Invalid query parameters', 400, parsedQuery.error.flatten())
     }
 
-    const { sort, page, limit, search, status, retentionRisk } = parsedQuery.data
+    const { sort, sortOrder, page, limit, search, status, retentionRisk } = parsedQuery.data
 
     // Support sorting by total amount descending for ranking donors by total given
-    const orderBy = sort === 'totalDesc' ? { totalAmount: 'desc' } : { lastName: 'asc' }
+    const orderBy = sort === 'totalDesc' ? { totalAmount: sortOrder } : { lastName: sortOrder }
 
     // Build where clause
     const where = { organizationId: session.user.organizationId }
@@ -45,7 +45,7 @@ export async function GET(request) {
       prisma.donor.count({ where }),
     ])
 
-    return NextResponse.json({ donors, pagination: { total } })
+    return NextResponse.json({ donors, pagination: { page, limit, total } })
   } catch (error) {
     console.error('GET /api/donors', error)
     return jsonError('Internal server error', 500)

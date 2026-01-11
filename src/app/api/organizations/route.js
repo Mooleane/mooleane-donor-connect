@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/session'
 import { jsonError } from '@/lib/api/route-response'
+import { createOrganizationSchema, organizationsListQuerySchema } from '@/lib/validation/organization-schema'
 
 export async function GET(request) {
   try {
     const url = new URL(request.url)
-    const search = url.searchParams.get('search') || ''
+    const query = Object.fromEntries(url.searchParams.entries())
+    const parsedQuery = organizationsListQuerySchema.safeParse(query)
+    if (!parsedQuery.success) return jsonError('Invalid query parameters', 400, parsedQuery.error.flatten())
+
+    const search = parsedQuery.data.search || ''
+    const limit = parsedQuery.data.limit
 
     // Build a safe search query only using fields that exist on the Organization model
     // Also allow matching on related users' email and donors' city/state
@@ -24,7 +30,7 @@ export async function GET(request) {
     // Return a small, flattened shape so the client can show name/email/city/state safely
     const orgs = await prisma.organization.findMany({
       where,
-      take: 50,
+      take: limit,
       include: {
         users: { take: 1, select: { email: true } },
         donors: { take: 1, select: { city: true, state: true } },
@@ -53,9 +59,11 @@ export async function POST(request) {
     const session = await getSession(sessionToken)
     if (!session) return jsonError('Unauthorized', 401)
 
-    const body = await request.json()
-    const { name } = body || {}
-    if (!name || !String(name).trim()) return jsonError('Organization name is required', 400)
+    const body = await request.json().catch(() => null)
+    const parsedBody = createOrganizationSchema.safeParse(body)
+    if (!parsedBody.success) return jsonError('Invalid request body', 400, parsedBody.error.flatten())
+
+    const name = parsedBody.data.name
 
     const organization = await prisma.organization.create({ data: { name: String(name).trim() } })
 

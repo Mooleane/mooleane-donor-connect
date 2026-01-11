@@ -18,8 +18,7 @@ export async function GET(request) {
       return jsonError('Invalid query parameters', 400, parsedQuery.error.flatten())
     }
 
-    const start = parsedQuery.data.start
-    const end = parsedQuery.data.end
+    const { start, end, donorId, campaignId, type, sortBy, sortOrder } = parsedQuery.data
     const isPaginated = Object.prototype.hasOwnProperty.call(query, 'limit') || Object.prototype.hasOwnProperty.call(query, 'page')
 
     const where = { donor: { organizationId: session.user.organizationId } }
@@ -30,6 +29,13 @@ export async function GET(request) {
       }
     }
 
+    // Optional filters
+    if (donorId) where.donorId = donorId
+    if (campaignId) where.campaignId = campaignId
+    if (type) where.type = type
+
+    const orderBy = { [sortBy]: sortOrder }
+
     // If paginated, return object; if not, return array for reports page compatibility
     if (isPaginated) {
       const limit = parsedQuery.data.limit
@@ -38,7 +44,7 @@ export async function GET(request) {
       const [donations, total] = await Promise.all([
         prisma.donation.findMany({
           where,
-          orderBy: { date: 'desc' },
+          orderBy,
           include: { donor: true, campaign: true },
           skip,
           take: limit,
@@ -50,7 +56,7 @@ export async function GET(request) {
       // For reports page: return plain array
       const donations = await prisma.donation.findMany({
         where,
-        orderBy: { date: 'desc' },
+        orderBy,
         include: { donor: true, campaign: true },
       })
       return NextResponse.json(donations)
