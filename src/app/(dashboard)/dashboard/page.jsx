@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,14 @@ import jsPDF from 'jspdf'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-600">Loading dashboard…</div>}>
+      <DashboardPageContent />
+    </Suspense>
+  )
+}
+
+function DashboardPageContent() {
   // Dashboard summary state
   const [summary, setSummary] = useState(null)
   const [recentDonations, setRecentDonations] = useState([])
