@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getSession } from '@/lib/session'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
   try {
@@ -11,13 +12,13 @@ export async function GET(request) {
     // Also allow matching on related users' email and donors' city/state
     const where = search
       ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { users: { some: { email: { contains: search, mode: 'insensitive' } } } },
-            { donors: { some: { city: { contains: search, mode: 'insensitive' } } } },
-            { donors: { some: { state: { contains: search, mode: 'insensitive' } } } },
-          ],
-        }
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { users: { some: { email: { contains: search, mode: 'insensitive' } } } },
+          { donors: { some: { city: { contains: search, mode: 'insensitive' } } } },
+          { donors: { some: { state: { contains: search, mode: 'insensitive' } } } },
+        ],
+      }
       : undefined
 
     // Return a small, flattened shape so the client can show name/email/city/state safely
@@ -41,7 +42,7 @@ export async function GET(request) {
 
     return NextResponse.json({ organizations })
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -50,11 +51,11 @@ export async function POST(request) {
     // require session
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const body = await request.json()
     const { name } = body || {}
-    if (!name || !String(name).trim()) return NextResponse.json({ error: 'Organization name is required' }, { status: 400 })
+    if (!name || !String(name).trim()) return jsonError('Organization name is required', 400)
 
     const organization = await prisma.organization.create({ data: { name: String(name).trim() } })
 
@@ -63,6 +64,6 @@ export async function POST(request) {
 
     return NextResponse.json({ organization }, { status: 201 })
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

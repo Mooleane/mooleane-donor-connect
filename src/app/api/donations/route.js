@@ -3,18 +3,19 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { createDonationSchema, donationListQuerySchema } from '@/lib/validation/donation-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const url = new URL(request.url)
     const query = Object.fromEntries(url.searchParams.entries())
     const parsedQuery = donationListQuerySchema.safeParse(query)
     if (!parsedQuery.success) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() }, { status: 400 })
+      return jsonError('Invalid query parameters', 400, parsedQuery.error.flatten())
     }
 
     const start = parsedQuery.data.start
@@ -56,7 +57,7 @@ export async function GET(request) {
     }
   } catch (error) {
     console.error('GET /api/donations error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -64,12 +65,12 @@ export async function POST(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const body = await request.json().catch(() => null)
     const parsedBody = createDonationSchema.safeParse(body)
     if (!parsedBody.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsedBody.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsedBody.error.flatten())
     }
 
     const { donorId, amount, date, campaignId, type, method, notes } = parsedBody.data
@@ -77,7 +78,7 @@ export async function POST(request) {
     // Verify donor belongs to organization
     const donor = await prisma.donor.findUnique({ where: { id: donorId } })
     if (!donor || donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Donor not found' }, { status: 404 })
+      return jsonError('Donor not found', 404)
     }
 
     // Create donation and update donor metrics in a transaction
@@ -113,6 +114,6 @@ export async function POST(request) {
     return NextResponse.json({ donation: result.donation }, { status: 201 })
   } catch (error) {
     console.error('POST /api/donations error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

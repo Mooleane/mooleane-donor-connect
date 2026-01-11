@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { register } from '@/lib/auth'
 import { createSession } from '@/lib/session'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function POST(request) {
   try {
@@ -9,7 +10,7 @@ export async function POST(request) {
     const { firstName, lastName, email, password, organizationId, organizationName } = body || {}
 
     if (!firstName || !lastName || !email || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      return jsonError('Missing required fields', 400)
     }
 
     try {
@@ -21,11 +22,11 @@ export async function POST(request) {
       return res
     } catch (err) {
       if (err && err.code === 'DUPLICATE_EMAIL') {
-        return NextResponse.json({ error: 'Email already exists' }, { status: 409 })
+        return jsonError('Email already exists', 409)
       }
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      return jsonError('Internal server error', 500)
     }
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    return jsonError('Invalid request body', 400)
   }
 } 

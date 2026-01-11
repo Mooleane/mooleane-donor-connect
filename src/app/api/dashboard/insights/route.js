@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
     try {
         const sessionToken = request.cookies.get('session')?.value
         const session = await getSession(sessionToken)
-        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        if (!session) return jsonError('Unauthorized', 401)
 
         const orgId = session.user.organizationId
 
@@ -171,6 +172,6 @@ Keep each insight to 1-2 sentences. Be specific and reference the actual data wh
 
     } catch (error) {
         console.error('GET /api/dashboard/insights', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        return jsonError('Internal server error', 500)
     }
 }

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const url = new URL(request.url)
     const start = url.searchParams.get('start')
@@ -31,6 +32,6 @@ export async function GET(request) {
     return NextResponse.json({ total: totalAmount, count })
   } catch (error) {
     console.error('GET /api/donations/totals error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

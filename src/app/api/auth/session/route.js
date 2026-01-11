@@ -1,14 +1,17 @@
 // Authentication API - Session Check
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
   try {
-    // TODO: Get session token from cookies
-    // TODO: Validate session using getSession function
-    // TODO: Return user data if valid session
-    // TODO: Return 401 if invalid session
+    const sessionToken = request.cookies.get('session')?.value
+    const session = await getSession(sessionToken)
+    if (!session) return jsonError('Unauthorized', 401)
+
+    return NextResponse.json({ user: session.user }, { status: 200 })
   } catch (error) {
-    // TODO: Handle errors and return 500 response
+    console.error('GET /api/auth/session', error)
+    return jsonError('Internal server error', 500)
   }
 }

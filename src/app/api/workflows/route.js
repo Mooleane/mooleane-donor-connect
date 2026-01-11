@@ -3,18 +3,19 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { createWorkflowSchema, workflowListQuerySchema } from '@/lib/validation/workflow-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const url = new URL(request.url)
     const query = Object.fromEntries(url.searchParams.entries())
     const parsedQuery = workflowListQuerySchema.safeParse(query)
     if (!parsedQuery.success) {
-      return NextResponse.json({ error: 'Invalid query parameters', details: parsedQuery.error.flatten() }, { status: 400 })
+      return jsonError('Invalid query parameters', 400, parsedQuery.error.flatten())
     }
 
     const { page, limit, search, trigger, isActive, sortBy, sortOrder } = parsedQuery.data
@@ -40,7 +41,7 @@ export async function GET(request) {
     return NextResponse.json({ workflows, pagination: { page, limit, total } })
   } catch (error) {
     console.error('GET /api/workflows error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -48,12 +49,12 @@ export async function POST(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const body = await request.json().catch(() => null)
     const parsedBody = createWorkflowSchema.safeParse(body)
     if (!parsedBody.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsedBody.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsedBody.error.flatten())
     }
 
     const { name, description, trigger, segmentId, steps, isActive } = parsedBody.data
@@ -72,6 +73,6 @@ export async function POST(request) {
     return NextResponse.json({ workflow }, { status: 201 })
   } catch (error) {
     console.error('POST /api/workflows error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

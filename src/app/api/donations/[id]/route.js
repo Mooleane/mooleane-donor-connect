@@ -4,19 +4,20 @@ import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { recalculateDonorTotals } from '@/lib/api/recalculate-donor-totals'
 import { updateDonationSchema } from '@/lib/validation/donation-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request, context) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     let id = context?.params?.id || context?.id
     if (!id) {
       const urlParts = request.url.split('/')
       id = urlParts[urlParts.length - 1]
     }
-    if (!id) return NextResponse.json({ error: 'Missing donation id' }, { status: 400 })
+    if (!id) return jsonError('Missing donation id', 400)
 
     const donation = await prisma.donation.findUnique({
       where: { id },
@@ -24,13 +25,13 @@ export async function GET(request, context) {
     })
 
     if (!donation || !donation.donor || donation.donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonError('Not found', 404)
     }
 
     return NextResponse.json(donation)
   } catch (error) {
     console.error('GET /api/donations/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -38,14 +39,14 @@ export async function PATCH(request, context) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     let id = context?.params?.id || context?.id
     if (!id) {
       const urlParts = request.url.split('/')
       id = urlParts[urlParts.length - 1]
     }
-    if (!id) return NextResponse.json({ error: 'Missing donation id' }, { status: 400 })
+    if (!id) return jsonError('Missing donation id', 400)
 
     // Find the donation and check org
     const donation = await prisma.donation.findUnique({
@@ -54,13 +55,13 @@ export async function PATCH(request, context) {
     })
 
     if (!donation || !donation.donor || donation.donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonError('Not found', 404)
     }
 
     const body = await request.json().catch(() => null)
     const parsed = updateDonationSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsed.error.flatten())
     }
 
     const { notes, amount, date, campaignId, type, method } = parsed.data
@@ -88,7 +89,7 @@ export async function PATCH(request, context) {
     return NextResponse.json(updated)
   } catch (error) {
     console.error('PATCH /api/donations/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -96,7 +97,7 @@ export async function DELETE(request, context) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     // Next.js 16 API routes: params may be under context.params or context (for edge compatibility)
     let id = context?.params?.id || context?.id
@@ -105,7 +106,7 @@ export async function DELETE(request, context) {
       const urlParts = request.url.split('/');
       id = urlParts[urlParts.length - 1];
     }
-    if (!id) return NextResponse.json({ error: 'Missing donation id' }, { status: 400 })
+    if (!id) return jsonError('Missing donation id', 400)
 
     // Find the donation and check org
     const donation = await prisma.donation.findUnique({
@@ -113,7 +114,7 @@ export async function DELETE(request, context) {
       include: { donor: true }
     })
     if (!donation || !donation.donor || donation.donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonError('Not found', 404)
     }
 
     await prisma.donation.delete({ where: { id } })
@@ -124,6 +125,6 @@ export async function DELETE(request, context) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/donations/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

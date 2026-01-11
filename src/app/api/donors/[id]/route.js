@@ -3,15 +3,16 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { updateDonorSchema } from '@/lib/validation/donor-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing donor id' }, { status: 400 })
+    if (!id) return jsonError('Missing donor id', 400)
 
     const donor = await prisma.donor.findFirst({
       where: { id, organizationId: session.user.organizationId },
@@ -20,11 +21,11 @@ export async function GET(request, { params }) {
       },
     })
 
-    if (!donor) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!donor) return jsonError('Not found', 404)
     return NextResponse.json({ donor })
   } catch (error) {
     console.error('GET /api/donors/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -32,25 +33,25 @@ export async function PATCH(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     let id = params?.id
     if (!id) {
       const urlParts = request.url.split('/')
       id = urlParts[urlParts.length - 1]
     }
-    if (!id) return NextResponse.json({ error: 'Missing donor id' }, { status: 400 })
+    if (!id) return jsonError('Missing donor id', 400)
 
     // Find donor and validate org
     const donor = await prisma.donor.findUnique({ where: { id } })
     if (!donor || donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonError('Not found', 404)
     }
 
     const body = await request.json().catch(() => null)
     const parsed = updateDonorSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsed.error.flatten())
     }
 
     // Build update data - only include fields that are provided
@@ -82,7 +83,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ donor: updated })
   } catch (error) {
     console.error('PATCH /api/donors/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -90,19 +91,19 @@ export async function DELETE(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     let id = params?.id || params?.id
     if (!id) {
       const urlParts = request.url.split('/')
       id = urlParts[urlParts.length - 1]
     }
-    if (!id) return NextResponse.json({ error: 'Missing donor id' }, { status: 400 })
+    if (!id) return jsonError('Missing donor id', 400)
 
     // Find donor and validate org
     const donor = await prisma.donor.findUnique({ where: { id } })
     if (!donor || donor.organizationId !== session.user.organizationId) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return jsonError('Not found', 404)
     }
 
     // Delete related donations first, then donor
@@ -112,6 +113,6 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/donors/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

@@ -3,24 +3,25 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { updateCampaignSchema } from '@/lib/validation/campaign-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing campaign id' }, { status: 400 })
+    if (!id) return jsonError('Missing campaign id', 400)
 
     const campaign = await prisma.campaign.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
-    if (!campaign) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!campaign) return jsonError('Not found', 404)
     return NextResponse.json({ campaign })
   } catch (error) {
     console.error('GET /api/campaigns/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -28,15 +29,15 @@ export async function PATCH(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing campaign id' }, { status: 400 })
+    if (!id) return jsonError('Missing campaign id', 400)
 
     const existing = await prisma.campaign.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!existing) return jsonError('Not found', 404)
 
     const rawBody = await request.json().catch(() => null)
     const body = rawBody && typeof rawBody === 'object' ? { ...rawBody } : rawBody
@@ -44,7 +45,7 @@ export async function PATCH(request, { params }) {
 
     const parsed = updateCampaignSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsed.error.flatten())
     }
 
     const updateData = {}
@@ -70,7 +71,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ campaign })
   } catch (error) {
     console.error('PATCH /api/campaigns/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -78,24 +79,24 @@ export async function DELETE(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Insufficient permission to delete campaign' }, { status: 403 })
+      return jsonError('Insufficient permission to delete campaign', 403)
     }
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing campaign id' }, { status: 400 })
+    if (!id) return jsonError('Missing campaign id', 400)
 
     const existing = await prisma.campaign.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!existing) return jsonError('Not found', 404)
 
     await prisma.campaign.delete({ where: { id } })
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/campaigns/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }

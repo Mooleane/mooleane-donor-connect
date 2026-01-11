@@ -3,25 +3,26 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { updateWorkflowSchema } from '@/lib/validation/workflow-schema'
+import { jsonError } from '@/lib/api/route-response'
 
 export async function GET(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing workflow id' }, { status: 400 })
+    if (!id) return jsonError('Missing workflow id', 400)
 
     const workflow = await prisma.workflow.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
 
-    if (!workflow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!workflow) return jsonError('Not found', 404)
     return NextResponse.json({ workflow })
   } catch (error) {
     console.error('GET /api/workflows/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -29,20 +30,20 @@ export async function PATCH(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing workflow id' }, { status: 400 })
+    if (!id) return jsonError('Missing workflow id', 400)
 
     const existing = await prisma.workflow.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!existing) return jsonError('Not found', 404)
 
     const body = await request.json().catch(() => null)
     const parsed = updateWorkflowSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request body', details: parsed.error.flatten() }, { status: 400 })
+      return jsonError('Invalid request body', 400, parsed.error.flatten())
     }
 
     const updateData = {}
@@ -72,7 +73,7 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ workflow })
   } catch (error) {
     console.error('PATCH /api/workflows/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
 
@@ -80,20 +81,20 @@ export async function DELETE(request, { params }) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session) return jsonError('Unauthorized', 401)
 
     const id = params?.id
-    if (!id) return NextResponse.json({ error: 'Missing workflow id' }, { status: 400 })
+    if (!id) return jsonError('Missing workflow id', 400)
 
     const existing = await prisma.workflow.findFirst({
       where: { id, organizationId: session.user.organizationId },
     })
-    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!existing) return jsonError('Not found', 404)
 
     await prisma.workflow.delete({ where: { id } })
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/workflows/[id] error', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return jsonError('Internal server error', 500)
   }
 }
