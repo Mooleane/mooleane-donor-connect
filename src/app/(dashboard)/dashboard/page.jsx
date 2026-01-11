@@ -140,13 +140,35 @@ export default function DashboardPage() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Failed to add donor')
 
+      const created = data?.donor || data
+
       // Prepend to donors list if available
-      setDonors(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      setDonors(prev => Array.isArray(prev) ? [created, ...prev] : [created])
       setDonorDialogOpen(false)
     } catch (e) {
       setDonorError(e.message || 'Failed to add donor')
     } finally {
       setDonorSaving(false)
+    }
+  }
+
+  // Delete donor handler (also remove donations in UI)
+  const handleDeleteDonor = async (id) => {
+    if (!id) return
+    if (!window.confirm('Are you sure you want to delete this donor and all their donations?')) return
+    try {
+      const res = await fetch(`/api/donors/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        throw new Error(payload.error || 'Failed to delete donor')
+      }
+
+      setDonors(prev => prev.filter(d => d.id !== id))
+      setDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donorId !== id) : prev)
+      setRecentDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donor?.id !== id && r.donorId !== id) : prev)
+      setReportDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donorId !== id) : prev)
+    } catch (err) {
+      setDonorsError(err.message || 'Failed to delete donor')
     }
   }
 
@@ -617,6 +639,7 @@ export default function DashboardPage() {
                     <th className="p-2">Phone</th>
                     <th className="p-2">City / State</th>
                     <th className="p-2">Total</th>
+                    <th className="p-2 text-right"> </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -626,6 +649,18 @@ export default function DashboardPage() {
                       <td className="p-2">{d.phone || '—'}</td>
                       <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
                       <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
+                      <td className="p-2 text-right">
+                        <button
+                          aria-label="Delete donor"
+                          title="Delete donor"
+                          className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteDonor(d.id) }}
+                          type="button"
+                        >
+                          <span className="sr-only">Delete</span>
+                          ×
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -875,7 +910,7 @@ export default function DashboardPage() {
             >
               Cancel
             </Button>
-            <Button
+            <Button variant="outline"
               onClick={saveNote}
               disabled={noteSaving}
             >
@@ -948,7 +983,7 @@ export default function DashboardPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDonorDialogOpen(false)} disabled={donorSaving}>Cancel</Button>
-            <Button onClick={saveDonor} disabled={donorSaving}>{donorSaving ? 'Saving...' : 'Save Donor'}</Button>
+            <Button variant="outline" onClick={saveDonor} disabled={donorSaving}>{donorSaving ? 'Saving...' : 'Save Donor'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1021,7 +1056,7 @@ export default function DashboardPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDonationDialogOpen(false)} disabled={donationSaving}>Cancel</Button>
-            <Button onClick={saveDonation} disabled={donationSaving}>{donationSaving ? 'Saving...' : 'Save Donation'}</Button>
+            <Button variant="outline" onClick={saveDonation} disabled={donationSaving}>{donationSaving ? 'Saving...' : 'Save Donation'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
