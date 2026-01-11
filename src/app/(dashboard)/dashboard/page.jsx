@@ -236,6 +236,10 @@ export default function DashboardPage() {
       if (activeTab === 'donors') {
         fetchDonors()
       }
+      // Refresh donations list if on that tab
+      if (activeTab === 'donations') {
+        fetchDonations()
+      }
       setDonationDialogOpen(false)
     } catch (e) {
       setDonationError(e.message || 'Failed to record donation')
@@ -540,11 +544,11 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">Loading donations…</td></tr>
+                <tr key="loading"><td colSpan="4" className="p-4 text-center text-sm text-gray-500">Loading donations…</td></tr>
               )}
 
               {!loading && recentDonations.length === 0 && (
-                <tr><td colSpan="4" className="p-4 text-center text-sm text-gray-500">No recent donations</td></tr>
+                <tr key="empty"><td colSpan="4" className="p-4 text-center text-sm text-gray-500">No recent donations</td></tr>
               )}
 
               {recentDonations.map(d => (
@@ -666,8 +670,8 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {donors.map(d => (
-                    <tr key={d.id} className="border-t">
+                  {donors.map((d, idx) => (
+                    <tr key={d.id || `donor-${idx}`} className="border-t">
                       <td className="p-2">{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</td>
                       <td className="p-2">{d.phone || '—'}</td>
                       <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
@@ -741,8 +745,8 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {donations.map(d => (
-                    <tr key={d.id} className="border-t group hover:bg-gray-50 transition-colors">
+                  {donations.map((d, idx) => (
+                    <tr key={d.id || `donation-${idx}`} className="border-t group hover:bg-gray-50 transition-colors">
                       <td className="p-2">{formatDate(d.date)}</td>
                       <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
                       <td className="p-2">{formatCurrency(d.amount || 0)}</td>
@@ -867,11 +871,11 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {reportLoading ? (
-                      <tr><td colSpan={4} className="p-4 text-center">Loading...</td></tr>
+                      <tr key="loading"><td colSpan={4} className="p-4 text-center">Loading...</td></tr>
                     ) : reportDonations.length === 0 ? (
-                      <tr><td colSpan={4} className="p-4 text-center">No donations found for this range.</td></tr>
-                    ) : reportDonations.map(d => (
-                      <tr key={d.id} className="border-t">
+                      <tr key="empty"><td colSpan={4} className="p-4 text-center">No donations found for this range.</td></tr>
+                    ) : reportDonations.map((d, idx) => (
+                      <tr key={d.id || `report-donation-${idx}`} className="border-t">
                         <td className="p-2">{format(new Date(d.date), 'MM/dd')}</td>
                         <td className="p-2">{d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : '—'}</td>
                         <td className="p-2">${Number(d.amount).toFixed(2)}</td>
