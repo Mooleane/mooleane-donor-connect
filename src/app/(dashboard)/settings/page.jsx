@@ -30,7 +30,7 @@ export default function SettingsPage() {
   }, []);
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-8">
+    <main className="p-8 max-w-2xl mx-auto space-y-8">
       <h1 className="text-3xl font-bold text-center mb-2">Settings</h1>
 
       {/* Organization Info */}
@@ -50,7 +50,6 @@ export default function SettingsPage() {
         )}
         <button className="mt-4 px-4 py-1 bg-blue-600 text-white rounded" disabled={loading}>Save Changes</button>
       </section>
-
-    </div>
+    </main>
   );
 }

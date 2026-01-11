@@ -84,80 +84,78 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-12">
-      <Card>
-        <CardHeader>
-          <CardTitle>Find your organization</CardTitle>
-          <CardDescription>
-            Search for your organization or create a new one to get started.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6">
-            <Input
-              placeholder="Search organizations (name, city, email)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search organizations"
-            />
-            {loading && <div className="mt-2 text-sm text-gray-600">Searching...</div>}
-            {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
+    <Card className="max-w-3xl mx-auto py-12">
+      <CardHeader>
+        <CardTitle>Find your organization</CardTitle>
+        <CardDescription>
+          Search for your organization or create a new one to get started.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-6">
+          <Input
+            placeholder="Search organizations (name, city, email)"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search organizations"
+          />
+          {loading && <div className="mt-2 text-sm text-gray-600">Searching...</div>}
+          {error && <div className="mt-2 text-sm text-red-600">{error}</div>}
 
-            <div className="mt-4">
-              {results.length === 0 && query && !loading ? (
-                <div className="text-sm text-gray-600">No organizations found.</div>
-              ) : null}
+          <div className="mt-4">
+            {results.length === 0 && query && !loading ? (
+              <div className="text-sm text-gray-600">No organizations found.</div>
+            ) : null}
 
-              {results.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left border-collapse">
-                    <thead>
-                      <tr>
-                        <th className="py-2 px-2">Action</th>
-                        <th className="py-2 px-2">Organization</th>
-                        <th className="py-2 px-2">City/State</th>
-                        <th className="py-2 px-2">Email</th>
-                        <th className="py-2 px-2">Website</th>
+            {results.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="py-2 px-2">Action</th>
+                      <th className="py-2 px-2">Organization</th>
+                      <th className="py-2 px-2">City/State</th>
+                      <th className="py-2 px-2">Email</th>
+                      <th className="py-2 px-2">Website</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.map((org) => (
+                      <tr key={org.id} className="border-t">
+                        <td className="py-2 px-2">
+                          <Button variant="ghost" onClick={() => handleSelect(org)}>Select</Button>
+                        </td>
+                        <td className="py-2 px-2 break-words max-w-xs">{org.name}</td>
+                        <td className="py-2 px-2 break-words max-w-xs">{org.city || '-'}{org.state ? `, ${org.state}` : ''}</td>
+                        <td className="py-2 px-2 break-words max-w-xs">{org.email || '-'}</td>
+                        <td className="py-2 px-2 break-words max-w-xs">{org.website || '-'}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {results.map((org) => (
-                        <tr key={org.id} className="border-t">
-                          <td className="py-2 px-2">
-                            <Button variant="ghost" onClick={() => handleSelect(org)}>Select</Button>
-                          </td>
-                          <td className="py-2 px-2 break-words max-w-xs">{org.name}</td>
-                          <td className="py-2 px-2 break-words max-w-xs">{org.city || '-'}{org.state ? `, ${org.state}` : ''}</td>
-                          <td className="py-2 px-2 break-words max-w-xs">{org.email || '-'}</td>
-                          <td className="py-2 px-2 break-words max-w-xs">{org.website || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 text-sm text-gray-600">
-              Demo organization: "Hope Foundation" <br />
-              Can't find your organization? Add it manually.
-            </div>
-          </div>
-
-          <hr className="my-6" />
-
-          <div>
-            <CardTitle className="mb-2">Create a new organization</CardTitle>
-            {createError && <div className="mb-2 text-sm text-red-600">{createError}</div>}
-            <form onSubmit={handleCreate} className="space-y-3">
-              <Input placeholder="Organization name" value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} aria-label="Organization name" />
-              <div className="flex items-center gap-3">
-                <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create organization'}</Button>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </form>
+            )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div className="mt-6 text-sm text-gray-600">
+            Demo organization: "Hope Foundation" <br />
+            Can't find your organization? Add it manually.
+          </div>
+        </div>
+
+        <hr className="my-6" />
+
+        <div>
+          <CardTitle className="mb-2">Create a new organization</CardTitle>
+          {createError && <div className="mb-2 text-sm text-red-600">{createError}</div>}
+          <form onSubmit={handleCreate} className="space-y-3">
+            <Input placeholder="Organization name" value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} aria-label="Organization name" />
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create organization'}</Button>
+            </div>
+          </form>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

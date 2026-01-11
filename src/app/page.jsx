@@ -10,11 +10,4 @@ export default async function HomePage() {
   } else {
     redirect('/home');
   }
-
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-between p-24">
-      <h1>Welcome to Business Case 2!</h1>
-    </div>
-  );
-
 }

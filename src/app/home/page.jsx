@@ -17,7 +17,7 @@ export default function Page() {
                     user-friendly experience.
                 </p>
 
-                <div className="flex justify-center gap-4">
+                <nav className="flex justify-center gap-4">
                     <a
                         href="/register"
                         className="inline-flex items-center px-6 py-3 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"
@@ -31,7 +31,7 @@ export default function Page() {
                     >
                         Why DonorConnect?
                     </a>
-                </div>
+                </nav>
             </section>
         </main>
     )

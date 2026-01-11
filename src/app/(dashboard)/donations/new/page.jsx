@@ -29,9 +29,7 @@ export default function NewDonationPage() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="mt-4">
-          <RecordDonation onRecorded={handleRecorded} />
-        </div>
+        <RecordDonation onRecorded={handleRecorded} />
       </DialogContent>
     </Dialog>
   )
