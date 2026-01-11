@@ -27,7 +27,7 @@ export async function getSession(sessionToken) {
   if (!session) return null
   if (session.expiresAt && session.expiresAt < new Date()) {
     // expired
-    await prisma.session.delete({ where: { token: sessionToken } }).catch(() => {})
+    await prisma.session.delete({ where: { token: sessionToken } }).catch(() => { })
     return null
   }
   const { user, ...rest } = session
@@ -41,7 +41,7 @@ export async function getSession(sessionToken) {
  */
 export async function getSessionUser() {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const token = cookieStore.get('session')?.value
     const session = await getSession(token)
     return session ? session.user : null
@@ -57,5 +57,5 @@ export async function getSessionUser() {
  */
 export async function deleteSession(sessionToken) {
   if (!sessionToken) return
-  await prisma.session.delete({ where: { token: sessionToken } }).catch(() => {})
+  await prisma.session.delete({ where: { token: sessionToken } }).catch(() => { })
 } 
