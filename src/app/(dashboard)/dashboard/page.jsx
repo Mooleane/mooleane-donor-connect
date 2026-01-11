@@ -232,6 +232,10 @@ export default function DashboardPage() {
 
       setDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
       setRecentDonations(prev => Array.isArray(prev) ? [data, ...prev] : [data])
+      // Refresh donors list to get updated totals
+      if (activeTab === 'donors') {
+        fetchDonors()
+      }
       setDonationDialogOpen(false)
     } catch (e) {
       setDonationError(e.message || 'Failed to record donation')
@@ -351,6 +355,10 @@ export default function DashboardPage() {
         throw new Error(payload.error || 'Failed to delete donation')
       }
       setDonations(donations => donations.filter(d => d.id !== id))
+      // Refresh donors list to get updated totals
+      if (activeTab === 'donors') {
+        fetchDonors()
+      }
     } catch (err) {
       setDonationsError(err.message || 'Failed to delete donation')
     } finally {

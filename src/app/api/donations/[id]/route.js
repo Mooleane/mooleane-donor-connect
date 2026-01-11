@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
+import { recalculateDonorTotals } from '@/lib/api/recalculate-donor-totals'
 
 export async function GET(request, context) {
   try {
@@ -73,6 +74,11 @@ export async function PATCH(request, context) {
       include: { donor: true, campaign: true }
     })
 
+    // Recalculate donor totals if amount or date was changed
+    if (amount !== undefined || date !== undefined) {
+      await recalculateDonorTotals(donation.donorId)
+    }
+
     return NextResponse.json(updated)
   } catch (error) {
     console.error('PATCH /api/donations/[id] error', error)
@@ -105,6 +111,10 @@ export async function DELETE(request, context) {
     }
 
     await prisma.donation.delete({ where: { id } })
+    
+    // Recalculate donor totals after deletion
+    await recalculateDonorTotals(donation.donorId)
+    
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('DELETE /api/donations/[id] error', error)
