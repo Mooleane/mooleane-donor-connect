@@ -50,6 +50,14 @@ export default function OnboardingPage() {
   }, [query])
 
   async function handleSelect(org) {
+    try {
+      if (typeof window !== 'undefined' && org) {
+        localStorage.setItem('selectedOrg', JSON.stringify(org))
+      }
+    } catch (e) {
+      // ignore localStorage errors
+    }
+
     // For a simple onboarding flow, selecting an org redirects to dashboard
     // In a full flow, we'd call an endpoint to join the org or set it as current
     router.push('/dashboard')

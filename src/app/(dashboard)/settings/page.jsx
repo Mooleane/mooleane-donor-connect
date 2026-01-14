@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
-  const [org, setOrg] = useState({ name: "", cityState: "", email: "", website: "" });
+  const [org, setOrg] = useState({ name: "", cityState: "", website: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
@@ -30,18 +30,48 @@ export default function SettingsPage() {
     }
     fetchSession();
 
+    // Read any organization selected during onboarding for a quick placeholder
+    let hasSaved = false;
+    let savedOrg = null;
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('selectedOrg');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          savedOrg = parsed;
+          const city = parsed.city || '';
+          const state = parsed.state || '';
+          const cityState = [city, state].filter(Boolean).join(', ');
+          setOrg({
+            name: parsed.name || '',
+            cityState,
+            website: parsed.website || ''
+          });
+          hasSaved = true;
+          setLoading(false);
+        }
+      }
+    } catch (e) {
+      // ignore localStorage/parse errors
+    }
+
     async function fetchOrg() {
-      setLoading(true);
+      if (!hasSaved) setLoading(true);
       setError("");
       try {
         const res = await fetch("/api/organization");
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load organization");
+
+        const fetched = data.organization || {};
+        const fetchedCity = fetched.city || '';
+        const fetchedState = fetched.state || '';
+        const fetchedCityState = [fetchedCity, fetchedState].filter(Boolean).join(', ') || fetched.cityState || '';
+
         setOrg({
-          name: data.organization.name || "",
-          cityState: data.organization.cityState || "",
-          email: data.organization.email || "",
-          website: data.organization.website || ""
+          name: fetched.name || (savedOrg && savedOrg.name) || "",
+          cityState: fetchedCityState || (savedOrg && ([savedOrg.city || '', savedOrg.state || ''].filter(Boolean).join(', '))) || "",
+          website: fetched.website || (savedOrg && savedOrg.website) || ""
         });
       } catch (e) {
         setError(e.message);
@@ -49,6 +79,28 @@ export default function SettingsPage() {
       setLoading(false);
     }
     fetchOrg();
+
+    // Listen for storage changes (selection made elsewhere) to update settings dynamically
+    function onStorage(e) {
+      if (e.key === 'selectedOrg') {
+        if (e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            const cityState = [parsed.city || '', parsed.state || ''].filter(Boolean).join(', ');
+            setOrg({
+              name: parsed.name || '',
+              cityState,
+              website: parsed.website || ''
+            });
+            setLoading(false);
+          } catch (err) {
+            // ignore
+          }
+        }
+      }
+    }
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   return (
@@ -66,7 +118,6 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 gap-3">
             <input className="border rounded px-2 py-1" placeholder="Organization Name" value={org.name} onChange={e => setOrg({ ...org, name: e.target.value })} />
             <input className="border rounded px-2 py-1" placeholder="City/State" value={org.cityState} onChange={e => setOrg({ ...org, cityState: e.target.value })} />
-            <input className="border rounded px-2 py-1" placeholder="Email" value={org.email} onChange={e => setOrg({ ...org, email: e.target.value })} />
             <input className="border rounded px-2 py-1" placeholder="Website (optional)" value={org.website} onChange={e => setOrg({ ...org, website: e.target.value })} />
           </div>
         )}
