@@ -65,7 +65,9 @@ export default function Topbar() {
       <div className="w-1/3 flex justify-end space-x-4">
         {checking ? null : user ? (
           <>
-            <div className="text-sm text-gray-200 py-2">{user.email || user.name}</div>
+            <div className="text-sm text-gray-200 py-2">
+              {user.email || user.name} <span className="text-xs text-gray-300">({user.isPro ? 'pro tier' : 'free tier'})</span>
+            </div>
             <button
               className="text-sm font-medium rounded-md hover:bg-gray-700 px-3 py-2 bg-red-600"
               onClick={async () => {

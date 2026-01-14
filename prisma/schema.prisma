@@ -106,6 +106,7 @@ model User {
   password       String // bcrypt hashed
   firstName      String
   lastName       String
+  isPro          Boolean  @default(false)
   role           UserRole @default(STAFF)
   organizationId String
   createdAt      DateTime @default(now())

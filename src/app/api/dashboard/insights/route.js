@@ -37,8 +37,10 @@ export async function GET(request) {
                         const ttl = Math.ceil((endOfMonth.getTime() - now.getTime()) / 1000)
                         await redis.expire(key, ttl)
                     }
-                    if (count > 50) {
-                        return NextResponse.json({ error: 'Rate limit exceeded. You may regenerate up to 50 times per month.' }, { status: 429 })
+                    // Determine limit based on user tier
+                    const limit = session.user?.isPro ? 250 : 50
+                    if (count > limit) {
+                        return NextResponse.json({ error: `Rate limit exceeded. You may regenerate up to ${limit} times per month.` }, { status: 429 })
                     }
                 } else {
                     console.warn('Upstash Redis not configured: skipping insights rate limiting')

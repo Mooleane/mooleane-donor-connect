@@ -31,6 +31,9 @@ function DashboardPageContent() {
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [insightsError, setInsightsError] = useState('')
   const [insightsScope, setInsightsScope] = useState('month') // 'month' | 'lifetime'
+  // Current user (for tier display)
+  const [user, setUser] = useState(null)
+  const [checkingUser, setCheckingUser] = useState(true)
 
   // Tab state
   const [activeTab, setActiveTab] = useState('donors')
@@ -599,6 +602,24 @@ function DashboardPageContent() {
       // ignore
     }
 
+    async function fetchSession() {
+      setCheckingUser(true)
+      try {
+        const res = await fetch('/api/auth/session')
+        if (!res.ok) {
+          setUser(null)
+        } else {
+          const data = await res.json()
+          setUser(data.user || null)
+        }
+      } catch (e) {
+        setUser(null)
+      }
+      setCheckingUser(false)
+    }
+
+    fetchSession()
+
     fetchSummary()
     fetchInsights()
   }, [])
@@ -731,7 +752,7 @@ function DashboardPageContent() {
               <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
               Regenerate AI Insights
             </Button>
-            <span className="text-sm text-gray-500 ml-2">Limit: 50 regenerations per month</span>
+            <span className="text-sm text-gray-500 ml-2">You have {user?.isPro ? 250 : 50} insights per month</span>
           </div>
         </div>
 

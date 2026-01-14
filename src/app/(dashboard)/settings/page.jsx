@@ -75,32 +75,63 @@ export default function SettingsPage() {
 
       {/* Account / Sign Out */}
       {checkingSession ? null : user ? (
-        <section className="bg-white rounded border p-4">
-          <div className="font-semibold mb-2">Account</div>
-          <div className="text-sm text-gray-700 mb-3">Signed in as <strong>{user.email || user.name || 'user'}</strong></div>
-          <button
-            className="px-4 py-1 bg-red-600 text-white rounded"
-            onClick={async () => {
-              setLoggingOut(true);
-              try {
-                const res = await fetch('/api/auth/logout', { method: 'POST' });
-                if (res.ok) {
-                  router.push('/login');
-                } else {
-                  const data = await res.json();
-                  alert(data?.error || 'Failed to log out');
+        <>
+          <section className="bg-white rounded border p-4 mb-4">
+            <div className="font-semibold mb-2">Upgrade to Pro</div>
+            <div className="text-sm text-gray-700 mb-3">Current tier: <strong>{user.isPro ? 'Pro' : 'Free'}</strong></div>
+            {user.isPro ? (
+              <div className="text-sm text-gray-500">You have Pro access and receive 5x AI insights.</div>
+            ) : (
+              <button
+                className="px-4 py-1 bg-green-600 text-white rounded"
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/auth/upgrade', { method: 'POST' })
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}))
+                      alert(data?.error || 'Upgrade failed')
+                      return
+                    }
+                    const data = await res.json()
+                    setUser(data.user || null)
+                    alert('Upgraded to Pro, you have 5x more AI insights!')
+                  } catch (e) {
+                    alert(e.message || 'Upgrade failed')
+                  }
+                }}
+              >
+                Upgrade to Pro
+              </button>
+            )}
+          </section>
+
+          <section className="bg-white rounded border p-4">
+            <div className="font-semibold mb-2">Account</div>
+            <div className="text-sm text-gray-700 mb-3">Signed in as <strong>{user.email || user.name || 'user'}</strong></div>
+            <button
+              className="px-4 py-1 bg-red-600 text-white rounded"
+              onClick={async () => {
+                setLoggingOut(true);
+                try {
+                  const res = await fetch('/api/auth/logout', { method: 'POST' });
+                  if (res.ok) {
+                    router.push('/login');
+                  } else {
+                    const data = await res.json();
+                    alert(data?.error || 'Failed to log out');
+                    setLoggingOut(false);
+                  }
+                } catch (e) {
+                  alert(e.message || 'Failed to log out');
                   setLoggingOut(false);
                 }
-              } catch (e) {
-                alert(e.message || 'Failed to log out');
-                setLoggingOut(false);
-              }
-            }}
-            disabled={loggingOut}
-          >
-            {loggingOut ? 'Signing out…' : 'Sign Out'}
-          </button>
-        </section>
+              }}
+              disabled={loggingOut}
+            >
+              {loggingOut ? 'Signing out…' : 'Sign Out'}
+            </button>
+          </section>
+        </>
       ) : null}
     </main>
   );
