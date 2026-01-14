@@ -30,6 +30,7 @@ function DashboardPageContent() {
   const [insights, setInsights] = useState([])
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [insightsError, setInsightsError] = useState('')
+  const [insightsScope, setInsightsScope] = useState('month') // 'month' | 'lifetime'
 
   // Tab state
   const [activeTab, setActiveTab] = useState('donors')
@@ -345,17 +346,20 @@ function DashboardPageContent() {
   }
 
   // Insights cache config
-  const INSIGHTS_CACHE_KEY = 'donorconnect_insights'
+  const INSIGHTS_CACHE_KEY_BASE = 'donorconnect_insights'
   const INSIGHTS_CACHE_TTL = 1000 * 60 * 60 * 6 // 6 hours
 
   // Fetch AI insights (uses localStorage cache unless `force` is true)
-  const fetchInsights = async (force = false) => {
+  const fetchInsights = async (force = false, scopeArg) => {
     setInsightsLoading(true)
     setInsightsError('')
     try {
+      const scope = scopeArg || insightsScope
+      const cacheKey = `${INSIGHTS_CACHE_KEY_BASE}:${scope}`
+
       if (!force && typeof window !== 'undefined') {
         try {
-          const raw = localStorage.getItem(INSIGHTS_CACHE_KEY)
+          const raw = localStorage.getItem(cacheKey)
           if (raw) {
             const parsed = JSON.parse(raw)
             if (parsed?.insights && parsed?.generatedAt && (Date.now() - parsed.generatedAt) < INSIGHTS_CACHE_TTL) {
@@ -369,7 +373,15 @@ function DashboardPageContent() {
         }
       }
 
-      const res = await fetch('/api/dashboard/insights')
+      let url = '/api/dashboard/insights'
+      const params = new URLSearchParams()
+      if (force) params.set('regen', '1')
+      if (scope === 'lifetime') params.set('scope', 'lifetime')
+      else params.set('scope', 'month')
+      const paramStr = params.toString()
+      if (paramStr) url += `?${paramStr}`
+
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load insights')
       const payload = await res.json()
       const insightsArr = payload.insights || []
@@ -377,7 +389,7 @@ function DashboardPageContent() {
 
       try {
         if (typeof window !== 'undefined') {
-          localStorage.setItem(INSIGHTS_CACHE_KEY, JSON.stringify({ insights: insightsArr, generatedAt: Date.now() }))
+          localStorage.setItem(cacheKey, JSON.stringify({ insights: insightsArr, generatedAt: Date.now() }))
         }
       } catch (e) {
         // ignore cache write failures
@@ -695,17 +707,32 @@ function DashboardPageContent() {
       {/* Recent Insights Section */}
       <div className="bg-white rounded border p-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">AI Insights [This Month]</h2>
-          <Button
-            variant="outline"
-            onClick={() => fetchInsights(true)}
-            disabled={insightsLoading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
-            Regenerate AI Insights
-          </Button>
-          <span className="text-sm text-gray-500 ml-2">Limit: 50 regenerations per month</span>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold">AI Insights [{insightsScope === 'month' ? 'This Month' : 'Lifetime'}]</h2>
+            <button
+              type="button"
+              onClick={() => {
+                const newScope = insightsScope === 'month' ? 'lifetime' : 'month'
+                setInsightsScope(newScope)
+                fetchInsights(false, newScope)
+              }}
+              className="text-sm px-2 py-1 border rounded bg-white hover:bg-gray-50"
+            >
+              {insightsScope === 'month' ? 'Show Lifetime' : 'Show This Month'}
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => fetchInsights(true)}
+              disabled={insightsLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
+              Regenerate AI Insights
+            </Button>
+            <span className="text-sm text-gray-500 ml-2">Limit: 50 regenerations per month</span>
+          </div>
         </div>
 
         <div className="space-y-2">
