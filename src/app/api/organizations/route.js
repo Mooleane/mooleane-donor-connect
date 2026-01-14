@@ -70,7 +70,9 @@ export async function POST(request) {
     // attach organization to the user (make the user an admin for that org)
     await prisma.user.update({ where: { id: session.user.id }, data: { organizationId: organization.id, role: 'ADMIN' } })
 
-    return NextResponse.json({ organization }, { status: 201 })
+    const organizationResponse = { ...organization, email: session.user.email }
+
+    return NextResponse.json({ organization: organizationResponse }, { status: 201 })
   } catch (err) {
     return jsonError('Internal server error', 500)
   }
