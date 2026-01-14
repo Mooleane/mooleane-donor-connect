@@ -37,8 +37,9 @@ export default function Topbar() {
 
   useEffect(() => {
     let mounted = true;
+
     async function fetchSession() {
-      setChecking(true);
+      if (mounted) setChecking(true);
       try {
         const res = await fetch('/api/auth/session');
         if (!res.ok) {
@@ -50,10 +51,37 @@ export default function Topbar() {
       } catch (e) {
         if (mounted) setUser(null);
       }
-      if (mounted) setChecking(false);
+      if (mounted) {
+        setChecking(false);
+        setLoggingOut(false);
+      }
     }
+
+    // Initial fetch
     fetchSession();
-    return () => { mounted = false };
+
+    // Handler to refresh session on auth events
+    const refreshHandler = () => {
+      fetchSession();
+    };
+
+    // Listen for custom window events (same-tab) and storage events (cross-tab)
+    window.addEventListener('auth:login', refreshHandler);
+    window.addEventListener('auth:logout', refreshHandler);
+
+    const storageHandler = (e) => {
+      if (e.key === 'donorconnect:auth') {
+        fetchSession();
+      }
+    };
+    window.addEventListener('storage', storageHandler);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener('auth:login', refreshHandler);
+      window.removeEventListener('auth:logout', refreshHandler);
+      window.removeEventListener('storage', storageHandler);
+    };
   }, []);
 
   return (
@@ -76,6 +104,11 @@ export default function Topbar() {
                 try {
                   const res = await fetch('/api/auth/logout', { method: 'POST' });
                   if (res.ok) {
+                    // signal other tabs and listeners that auth changed
+                    try { localStorage.setItem('donorconnect:auth', String(Date.now())); } catch (e) { }
+                    window.dispatchEvent(new CustomEvent('auth:logout'));
+                    setUser(null);
+                    setLoggingOut(false);
                     router.push('/login');
                   } else {
                     const data = await res.json();

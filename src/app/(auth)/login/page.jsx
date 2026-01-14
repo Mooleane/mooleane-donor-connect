@@ -33,6 +33,9 @@ export default function LoginPage() {
       }
 
       // Redirect to onboarding
+      // signal topbar and other tabs about auth change before navigation
+      try { localStorage.setItem('donorconnect:auth', String(Date.now())); } catch (e) { }
+      try { window.dispatchEvent(new CustomEvent('auth:login')); } catch (e) { }
       router.push('/onboarding')
     } catch (err) {
       setError('Login failed')

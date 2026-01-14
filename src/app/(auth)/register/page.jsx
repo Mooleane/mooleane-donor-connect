@@ -37,6 +37,9 @@ export default function RegisterPage() {
       }
 
       // Redirect on success to onboarding
+      // signal Topbar and other tabs about auth change before navigation
+      try { localStorage.setItem('donorconnect:auth', String(Date.now())); } catch (e) { }
+      try { window.dispatchEvent(new CustomEvent('auth:login')); } catch (e) { }
       router.push('/onboarding')
     } catch (err) {
       setError('Registration failed')
