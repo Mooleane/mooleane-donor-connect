@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { prisma } from '@/lib/db'
 import { jsonError } from '@/lib/api/route-response'
+import { Redis } from '@upstash/redis'
+
+const redis = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+    : null
 
 export async function GET(request) {
     try {
@@ -10,6 +18,35 @@ export async function GET(request) {
         if (!session) return jsonError('Unauthorized', 401)
 
         const orgId = session.user.organizationId
+
+        // Rate limiting: only consume a regeneration when caller provides `?regen=1`.
+        try {
+            const url = new URL(request.url)
+            const regenParam = url.searchParams.get('regen')
+            const shouldCount = regenParam && ['1', 'true'].includes(regenParam.toLowerCase())
+
+            if (shouldCount) {
+                if (redis) {
+                    const now = new Date()
+                    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+                    const key = `insights:${session.user.id}:${monthKey}`
+                    const count = await redis.incr(key)
+                    if (count === 1) {
+                        // set TTL to end of month
+                        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+                        const ttl = Math.ceil((endOfMonth.getTime() - now.getTime()) / 1000)
+                        await redis.expire(key, ttl)
+                    }
+                    if (count > 10) {
+                        return NextResponse.json({ error: 'Rate limit exceeded. You may regenerate up to 10 times per month.' }, { status: 429 })
+                    }
+                } else {
+                    console.warn('Upstash Redis not configured: skipping insights rate limiting')
+                }
+            }
+        } catch (err) {
+            console.error('Insights rate limiting failed, allowing request', err)
+        }
 
         // Get current month's date range
         const now = new Date()
