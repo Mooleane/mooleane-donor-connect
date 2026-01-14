@@ -102,7 +102,7 @@ export default function OnboardingPage() {
       <CardContent>
         <div className="mb-6">
           <Input
-            placeholder="Search organizations (name, city, email)"
+            placeholder="Search organizations (name, city, state)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label="Search organizations"
@@ -159,7 +159,7 @@ export default function OnboardingPage() {
           <form onSubmit={handleCreate} className="space-y-3">
             <Input placeholder="Organization name" value={newOrgName} onChange={(e) => setNewOrgName(e.target.value)} aria-label="Organization name" />
             <div className="flex items-center gap-3">
-              <Button type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create organization'}</Button>
+              <Button variant="outline" type="submit" disabled={creating}>{creating ? 'Creating...' : 'Create organization'}</Button>
             </div>
           </form>
         </div>

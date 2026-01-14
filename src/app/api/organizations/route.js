@@ -20,7 +20,6 @@ export async function GET(request) {
       ? {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
-          { users: { some: { email: { contains: search, mode: 'insensitive' } } } },
           { donors: { some: { city: { contains: search, mode: 'insensitive' } } } },
           { donors: { some: { state: { contains: search, mode: 'insensitive' } } } },
         ],
