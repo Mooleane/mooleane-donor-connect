@@ -705,7 +705,7 @@ function DashboardPageContent() {
             <RefreshCw className={`h-4 w-4 ${insightsLoading ? 'animate-spin' : ''}`} />
             Regenerate AI Insights
           </Button>
-          <span className="text-sm text-gray-500 ml-2">Limit: 10 regenerations per month</span>
+          <span className="text-sm text-gray-500 ml-2">Limit: 50 regenerations per month</span>
         </div>
 
         <div className="space-y-2">
