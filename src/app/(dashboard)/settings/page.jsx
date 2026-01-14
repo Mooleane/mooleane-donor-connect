@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const router = useRouter();
+  const [saving, setSaving] = useState(false);
 
 
   useEffect(() => {
@@ -121,7 +122,54 @@ export default function SettingsPage() {
             <input className="border rounded px-2 py-1" placeholder="Website (optional)" value={org.website} onChange={e => setOrg({ ...org, website: e.target.value })} />
           </div>
         )}
-        <button className="mt-4 px-4 py-1 bg-blue-600 text-white rounded" disabled={loading}>Save Changes</button>
+        <button
+          className="mt-4 px-4 py-1 bg-blue-600 text-white rounded"
+          disabled={loading || saving}
+          onClick={async () => {
+            setSaving(true)
+            setError("")
+            try {
+              const res = await fetch('/api/organization', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: org.name, cityState: org.cityState, website: org.website }),
+              })
+              const data = await res.json().catch(() => ({}))
+              if (!res.ok) {
+                setError(data.error || 'Failed to save organization')
+                setSaving(false)
+                return
+              }
+
+              const updated = data.organization || {}
+              setOrg(prev => ({
+                name: updated.name || prev.name,
+                cityState: prev.cityState,
+                website: prev.website,
+              }))
+
+              // update any onboarding/local selection
+              try {
+                if (typeof window !== 'undefined') {
+                  const saved = JSON.parse(localStorage.getItem('selectedOrg') || 'null')
+                  if (saved) {
+                    const merged = { ...saved, name: updated.name || saved.name, website: prev.website }
+                    localStorage.setItem('selectedOrg', JSON.stringify(merged))
+                  }
+                }
+              } catch (e) {
+                // ignore localStorage errors
+              }
+
+              alert('Organization updated')
+            } catch (e) {
+              setError(e.message || 'Failed to save organization')
+            }
+            setSaving(false)
+          }}
+        >
+          {saving ? 'Saving…' : 'Save Changes'}
+        </button>
       </section>
 
       {/* Account / Sign Out */}
