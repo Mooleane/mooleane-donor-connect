@@ -79,6 +79,8 @@ export async function POST(request) {
       state,
       zipCode,
       status,
+      preferredContactMethod,
+      tags,
       retentionRisk,
     } = parsedBody.data
 
@@ -100,7 +102,9 @@ export async function POST(request) {
         city: city ? String(city).trim() : null,
         state: state ? String(state).trim() : null,
         zipCode: zipCode ? String(zipCode).trim() : null,
-        status: status || 'ACTIVE',
+        status: (status && String(status).toUpperCase()) || 'ACTIVE',
+        preferredContactMethod: preferredContactMethod ? String(preferredContactMethod) : null,
+        tags: tags ? String(tags) : null,
         retentionRisk: retentionRisk || 'UNKNOWN',
       },
     })

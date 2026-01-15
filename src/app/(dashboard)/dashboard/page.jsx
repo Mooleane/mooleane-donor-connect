@@ -11,6 +11,9 @@ import { Badge } from '@/components/ui/badge'
 import { format, subDays } from 'date-fns'
 import jsPDF from 'jspdf'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import DonationForm from '@/components/donations/donation-form'
+import DonorForm from '@/components/donors/donor-form'
+import DonationList from '@/components/donations/donation-list'
 
 export default function DashboardPage() {
   return (
@@ -51,6 +54,17 @@ function DashboardPageContent() {
   const [donorsTotal, setDonorsTotal] = useState(0)
   const donorsLimit = 10
 
+  // Donor search & filter state
+  const [donorFilterName, setDonorFilterName] = useState('')
+  const [donorFilterTags, setDonorFilterTags] = useState('')
+  const [donorFilterEmail, setDonorFilterEmail] = useState('')
+  const [donorFilterCityState, setDonorFilterCityState] = useState('')
+  const [donorFilterZip, setDonorFilterZip] = useState('')
+  const [donorFilterPhone, setDonorFilterPhone] = useState('')
+  const [donorFilterRisk, setDonorFilterRisk] = useState('') // '', 'LOW','MEDIUM','HIGH'
+  const [donorFilterMinGifts, setDonorFilterMinGifts] = useState('')
+  const [donorSortOrder, setDonorSortOrder] = useState('totalDesc') // 'totalDesc' | 'totalAsc'
+
   // Donors tab totals (organization-wide)
   const [donorTotals, setDonorTotals] = useState({ totalAmount: 0, totalGifts: 0 })
   const [donorTotalsLoading, setDonorTotalsLoading] = useState(false)
@@ -79,6 +93,14 @@ function DashboardPageContent() {
   const [donationsTotal, setDonationsTotal] = useState(0)
   const donationsLimit = 10
 
+  // Donation filters (client-side)
+  const [donationFilterStart, setDonationFilterStart] = useState('')
+  const [donationFilterEnd, setDonationFilterEnd] = useState('')
+  const [donationFilterType, setDonationFilterType] = useState('')
+  const [donationFilterMinAmount, setDonationFilterMinAmount] = useState('')
+  const [donationFilterMaxAmount, setDonationFilterMaxAmount] = useState('')
+  const [donationFilterDonorName, setDonationFilterDonorName] = useState('')
+
   // Notes dialog state
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
   const [selectedDonation, setSelectedDonation] = useState(null)
@@ -89,7 +111,7 @@ function DashboardPageContent() {
   // Add/Edit Donor dialog state
   const [donorDialogOpen, setDonorDialogOpen] = useState(false)
   const [editingDonorId, setEditingDonorId] = useState(null)
-  const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
+  const [donorForm, setDonorForm] = useState({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '', zipCode: '', status: 'ACTIVE', preferredContactMethod: 'email', tags: '' })
   const [donorSaving, setDonorSaving] = useState(false)
   const [donorError, setDonorError] = useState('')
 
@@ -125,20 +147,20 @@ function DashboardPageContent() {
     setNoteError('')
     try {
       const res = await fetch(`/api/donations/${selectedDonation.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: noteText })
       })
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Failed to save note')
       }
-      const updated = await res.json()
+      const updatedDonation = data && data.donation ? data.donation : data
 
       // Update the donation in all relevant state arrays
-      setRecentDonations(prev => prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d))
-      setDonations(prev => prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d))
-      setReportDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updated.id ? { ...d, notes: updated.notes } : d) : prev)
+      setRecentDonations(prev => prev.map(d => d.id === updatedDonation.id ? { ...d, notes: updatedDonation.notes } : d))
+      setDonations(prev => prev.map(d => d.id === updatedDonation.id ? { ...d, notes: updatedDonation.notes } : d))
+      setReportDonations(prev => Array.isArray(prev) ? prev.map(d => d.id === updatedDonation.id ? { ...d, notes: updatedDonation.notes } : d) : prev)
 
       setNoteDialogOpen(false)
       setSelectedDonation(null)
@@ -160,37 +182,57 @@ function DashboardPageContent() {
         phone: donor.phone || '',
         city: donor.city || '',
         state: donor.state || '',
-        email: donor.email || ''
+        email: donor.email || '',
+        zipCode: donor.zipCode || '',
+        status: donor.status || 'ACTIVE',
+        preferredContactMethod: donor.preferredContactMethod || 'email',
+        tags: Array.isArray(donor.tags) ? donor.tags.join(', ') : (donor.tags || '')
       })
     } else {
       setEditingDonorId(null)
-      setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '' })
+      setDonorForm({ firstName: '', lastName: '', phone: '', city: '', state: '', email: '', zipCode: '', status: 'ACTIVE', preferredContactMethod: 'email', tags: '' })
     }
     setDonorError('')
     setDonorDialogOpen(true)
   }
 
-  // Save donor (add or edit)
-  const saveDonor = async () => {
+  // Save donor (add or edit). Accepts optional payloadArg from DonorForm.
+  const saveDonor = async (payloadArg) => {
     setDonorSaving(true)
     setDonorError('')
     try {
-      const payload = {
+      const payload = payloadArg ? {
+        firstName: (payloadArg.firstName || '').trim(),
+        lastName: (payloadArg.lastName || '').trim(),
+        phone: (payloadArg.phone || '').trim(),
+        city: (payloadArg.city || '').trim(),
+        state: (payloadArg.state || '').trim(),
+        email: (payloadArg.email || '').trim(),
+        zipCode: (payloadArg.zipCode || '').trim(),
+        status: (payloadArg.status || '').toUpperCase() || 'ACTIVE',
+        preferredContactMethod: payloadArg.preferredContactMethod || 'email',
+        tags: payloadArg.tags || ''
+      } : {
         firstName: donorForm.firstName?.trim() || '',
         lastName: donorForm.lastName?.trim() || '',
         phone: donorForm.phone?.trim() || '',
         city: donorForm.city?.trim() || '',
         state: donorForm.state?.trim() || '',
-        email: donorForm.email?.trim() || ''
+        email: donorForm.email?.trim() || '',
+        zipCode: donorForm.zipCode?.trim() || '',
+        status: donorForm.status || 'ACTIVE',
+        preferredContactMethod: donorForm.preferredContactMethod || 'email',
+        tags: donorForm.tags || ''
       }
-      // If a phone number is provided, only allow digits, spaces, and dashes
-      if (payload.phone && !/^[0-9\s-]+$/.test(payload.phone)) {
-        setDonorError('Phone number may only contain digits, spaces, and dashes.')
+
+      // If a phone number is provided, only allow digits, spaces, dashes, and pluses
+      if (payload.phone && !/^[0-9+\s-]+$/.test(payload.phone)) {
+        setDonorError('Phone number may only contain digits, spaces, dashes, and +.')
         setDonorSaving(false)
         return
       }
 
-      const method = editingDonorId ? 'PATCH' : 'POST'
+      const method = editingDonorId ? 'PUT' : 'POST'
       const url = editingDonorId ? `/api/donors/${editingDonorId}` : '/api/donors'
 
       const res = await fetch(url, {
@@ -213,6 +255,13 @@ function DashboardPageContent() {
 
       setDonorDialogOpen(false)
       setEditingDonorId(null)
+      // Refresh dashboard stats after adding/updating donor
+      try {
+        fetchSummary()
+        fetchDonorTotals()
+      } catch (e) {
+        // ignore
+      }
     } catch (e) {
       setDonorError(e.message || `Failed to ${editingDonorId ? 'update' : 'add'} donor`)
     } finally {
@@ -237,7 +286,12 @@ function DashboardPageContent() {
       setReportDonations(prev => Array.isArray(prev) ? prev.filter(r => r.donorId !== id) : prev)
 
       // Keep donors totals in sync after deleting donor + donations
-      fetchDonorTotals()
+      try {
+        fetchDonorTotals()
+        fetchSummary()
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       setDonorsError(err.message || 'Failed to delete donor')
     }
@@ -306,7 +360,7 @@ function DashboardPageContent() {
         notes: donationForm.notes || ''
       }
 
-      const method = editingDonationId ? 'PATCH' : 'POST'
+      const method = editingDonationId ? 'PUT' : 'POST'
       const url = editingDonationId ? `/api/donations/${editingDonationId}` : '/api/donations'
 
       const res = await fetch(url, {
@@ -317,7 +371,9 @@ function DashboardPageContent() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || `Failed to ${editingDonationId ? 'update' : 'record'} donation`)
 
-      const updated = editingDonationId ? data : data
+      // API routes return an object shaped { donation: { ... } }
+      // Extract the donation object so state arrays contain donation records with `id`.
+      const updated = data && data.donation ? data.donation : data
 
       if (editingDonationId) {
         // Update the donation in all relevant state arrays
@@ -337,6 +393,14 @@ function DashboardPageContent() {
       // Refresh donations list if on that tab
       if (activeTab === 'donations') {
         fetchDonations()
+      }
+
+      // Refresh dashboard summary and totals after donation add/update
+      try {
+        fetchSummary()
+        fetchDonorTotals()
+      } catch (e) {
+        // ignore
       }
 
       setDonationDialogOpen(false)
@@ -494,6 +558,13 @@ function DashboardPageContent() {
       if (activeTab === 'donors') {
         fetchDonors()
       }
+      // Refresh dashboard summary and totals after deletion
+      try {
+        fetchSummary()
+        fetchDonorTotals()
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       setDonationsError(err.message || 'Failed to delete donation')
     } finally {
@@ -509,7 +580,8 @@ function DashboardPageContent() {
       const dRes = await fetch(`/api/donations?start=${reportStart}&end=${reportEnd}`)
       const dData = await dRes.json()
       if (!dRes.ok) throw new Error(dData.error || 'Failed to fetch donations')
-      setReportDonations(dData)
+      // API may return an object { donations: [...] } or an array directly.
+      setReportDonations(Array.isArray(dData) ? dData : (dData?.donations || []))
 
       const sRes = await fetch(`/api/donations/totals?start=${reportStart}&end=${reportEnd}`)
       const sData = await sRes.json()
@@ -821,10 +893,14 @@ function DashboardPageContent() {
         {/* Donors Tab */}
         {activeTab === 'donors' && (
           <div className="space-y-4">
-            <div className="flex justify-end items-center">
+            <div className="flex justify-end items-center gap-2">
               <Button variant="outline" onClick={openDonorDialog}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Donor
+              </Button>
+              <Button variant="outline" onClick={openDonationDialog}>
+                <Plus className="mr-2 h-4 w-4" />
+                Record Donation
               </Button>
             </div>
 
@@ -843,83 +919,134 @@ function DashboardPageContent() {
               </div>
             </div>
 
-            {donorsLoading && <div className="p-4 text-sm text-gray-500">Loading donors…</div>}
             {donorsError && <div className="p-4 text-sm text-red-600">{donorsError}</div>}
 
-            {!donorsLoading && donors.length === 0 && (
-              <div className="p-4 text-sm text-gray-500">No donors found</div>
-            )}
+            {/* Donor Filters */}
+            <div className="border rounded p-3 mb-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-[180px]">
+                  <label className="text-sm">Name</label>
+                  <input type="search" placeholder="Search name" value={donorFilterName} onChange={e => setDonorFilterName(e.target.value)} className="border rounded px-2 py-1 flex-1" />
+                </div>
 
-            {!donorsLoading && donors.length > 0 && (
-              <table className="w-full table-auto">
-                <thead>
-                  <tr className="text-left text-sm text-gray-600">
-                    <th className="p-2">Donor</th>
-                    <th className="p-2">Email</th>
-                    <th className="p-2">Phone</th>
-                    <th className="p-2">City / State</th>
-                    <th className="p-2">Total Amount</th>
-                    <th className="p-2">Total Gifts</th>
-                    <th className="p-2">
-                      <div className="flex items-center gap-1">
-                        Risk Level
-                        <button
-                          type="button"
-                          onClick={() => setRiskPopupOpen(true)}
-                          aria-label="Risk level info"
-                          className="text-gray-400 hover:text-gray-600 ml-1"
-                        >
-                          <Info className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </th>
-                    <th className="p-2 text-right">Edit</th>
-                    <th className="p-2 text-right">Delete</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donors.map((d, idx) => {
-                    const riskLevel = calculateDonorRiskLevel(d)
-                    return (
-                      <tr key={d.id || `donor-${idx}`} className="border-t">
-                        <td className="p-2">{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</td>
-                        <td className="p-2">{d.email || '—'}</td>
-                        <td className="p-2">{d.phone || '—'}</td>
-                        <td className="p-2">{d.city ? `${d.city}${d.state ? ', ' + d.state : ''}` : (d.state ? d.state : '—')}</td>
-                        <td className="p-2">{formatCurrency(d.totalAmount || 0)}</td>
-                        <td className="p-2">{d.totalGifts ?? 0}</td>
-                        <td className="p-2">
-                          <Badge className={getRiskBadgeColor(riskLevel)}>{riskLevel}</Badge>
-                        </td>
-                        <td className="p-2 text-right">
-                          <button
-                            aria-label="Edit donor"
-                            title="Edit donor"
-                            className="text-blue-500 hover:text-white hover:bg-blue-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition inline-flex"
-                            onClick={(e) => { e.stopPropagation(); openDonorDialog(d) }}
-                            type="button"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                        <td className="p-2 text-right">
-                          <button
-                            aria-label="Delete donor"
-                            title="Delete donor"
-                            className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 transition"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteDonor(d.id) }}
-                            type="button"
-                          >
-                            <span className="sr-only">Delete</span>
-                            ×
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
+                <div className="flex items-center gap-2 min-w-[160px]">
+                  <label className="text-sm">Tags</label>
+                  <input placeholder="tag1, tag2" value={donorFilterTags} onChange={e => setDonorFilterTags(e.target.value)} className="border rounded px-2 py-1" />
+                </div>
+
+                <div className="flex items-center gap-2 min-w-[200px]">
+                  <label className="text-sm">Email</label>
+                  <input placeholder="email" value={donorFilterEmail} onChange={e => setDonorFilterEmail(e.target.value)} className="border rounded px-2 py-1" />
+                </div>
+
+                <div className="flex items-center gap-2 min-w-[160px]">
+                  <label className="text-sm">City / State</label>
+                  <input placeholder="city or state" value={donorFilterCityState} onChange={e => setDonorFilterCityState(e.target.value)} className="border rounded px-2 py-1" />
+                </div>
+
+                <div className="flex items-center gap-2 min-w-[140px]">
+                  <label className="text-sm">Zip</label>
+                  <input placeholder="zip" value={donorFilterZip} onChange={e => setDonorFilterZip(e.target.value)} className="border rounded px-2 py-1 w-28" />
+                </div>
+
+                <div className="flex items-center gap-2 min-w-[160px]">
+                  <label className="text-sm">Phone</label>
+                  <input placeholder="phone" value={donorFilterPhone} onChange={e => setDonorFilterPhone(e.target.value)} className="border rounded px-2 py-1" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Risk</label>
+                  <select value={donorFilterRisk} onChange={e => setDonorFilterRisk(e.target.value)} className="border rounded px-2 py-1">
+                    <option value="">Any</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Min Gifts</label>
+                  <input type="number" min="0" placeholder="0" value={donorFilterMinGifts} onChange={e => setDonorFilterMinGifts(e.target.value)} className="border rounded px-2 py-1 w-20" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-sm">Sort</label>
+                  <select value={donorSortOrder} onChange={e => setDonorSortOrder(e.target.value)} className="border rounded px-2 py-1">
+                    <option value="totalDesc">Totals: Greatest → Least</option>
+                    <option value="totalAsc">Totals: Least → Greatest</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button className="px-3 py-1 border rounded" onClick={() => {
+                    setDonorFilterName(''); setDonorFilterTags(''); setDonorFilterEmail(''); setDonorFilterCityState(''); setDonorFilterZip(''); setDonorFilterPhone(''); setDonorFilterRisk(''); setDonorFilterMinGifts(''); setDonorSortOrder('totalDesc')
+                  }}>Reset</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Filtered donors list */}
+            {
+              (() => {
+                const filters = {
+                  name: donorFilterName.trim().toLowerCase(),
+                  tags: donorFilterTags.trim().toLowerCase(),
+                  email: donorFilterEmail.trim().toLowerCase(),
+                  citystate: donorFilterCityState.trim().toLowerCase(),
+                  zip: donorFilterZip.trim(),
+                  phone: donorFilterPhone.trim().toLowerCase(),
+                  risk: donorFilterRisk,
+                  minGifts: donorFilterMinGifts ? Number(donorFilterMinGifts) : null,
+                }
+
+                const matched = (Array.isArray(donors) ? donors : []).filter(d => {
+                  try {
+                    if (filters.name) {
+                      const name = `${d.firstName || ''} ${d.lastName || ''}`.toLowerCase()
+                      if (!name.includes(filters.name)) return false
+                    }
+                    if (filters.tags) {
+                      const tagsStr = Array.isArray(d.tags) ? d.tags.join(', ') : (d.tags || '')
+                      if (!tagsStr.toLowerCase().includes(filters.tags)) return false
+                    }
+                    if (filters.email && !(d.email || '').toLowerCase().includes(filters.email)) return false
+                    if (filters.citystate) {
+                      const cs = `${d.city || ''} ${d.state || ''}`.toLowerCase()
+                      if (!cs.includes(filters.citystate)) return false
+                    }
+                    if (filters.zip && !(d.zipCode || '').includes(filters.zip)) return false
+                    if (filters.phone && !(d.phone || '').toLowerCase().includes(filters.phone)) return false
+                    if (filters.minGifts !== null) {
+                      const giftCount = Number(d.totalGifts ?? d.giftCount ?? 0)
+                      if (giftCount < filters.minGifts) return false
+                    }
+                    if (filters.risk) {
+                      const r = calculateDonorRiskLevel(d)
+                      if (r !== filters.risk) return false
+                    }
+                    return true
+                  } catch (e) {
+                    return true
+                  }
+                })
+
+                const sorted = matched.sort((a, b) => {
+                  const aTotal = Number(a.totalAmount || a.amount || 0)
+                  const bTotal = Number(b.totalAmount || b.amount || 0)
+                  if (donorSortOrder === 'totalAsc') return aTotal - bTotal
+                  return bTotal - aTotal
+                })
+
+                return (
+                  <DonationList
+                    donations={sorted}
+                    onEdit={(d) => openDonorDialog(d)}
+                    onDelete={(id) => handleDeleteDonor(id)}
+                    isLoading={donorsLoading}
+                  />
+                )
+              })()
+            }
 
             {/* Pagination */}
             <div className="flex justify-center gap-4 mt-6">
@@ -947,11 +1074,38 @@ function DashboardPageContent() {
         {
           activeTab === 'donations' && (
             <div className="space-y-4">
-              <div className="flex justify-end items-center">
-                <Button variant="outline" onClick={openDonationDialog}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Record Donation
-                </Button>
+
+              {/* Filters */}
+              <div className="border rounded p-3 mb-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Date</label>
+                    <input type="date" value={donationFilterStart} onChange={e => setDonationFilterStart(e.target.value)} className="border rounded px-2 py-1" />
+                    <span>to</span>
+                    <input type="date" value={donationFilterEnd} onChange={e => setDonationFilterEnd(e.target.value)} className="border rounded px-2 py-1" />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Type</label>
+                    <select value={donationFilterType} onChange={e => setDonationFilterType(e.target.value)} className="border rounded px-2 py-1">
+                      <option value="">All</option>
+                      {Array.from(new Set((donations || []).map(d => d.method).filter(Boolean))).map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm">Amount</label>
+                    <input type="number" placeholder="min" value={donationFilterMinAmount} onChange={e => setDonationFilterMinAmount(e.target.value)} className="border rounded px-2 py-1 w-24" />
+                    <input type="number" placeholder="max" value={donationFilterMaxAmount} onChange={e => setDonationFilterMaxAmount(e.target.value)} className="border rounded px-2 py-1 w-24" />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-1">
+                    <label className="text-sm">Donor</label>
+                    <input type="search" placeholder="Search donor name" value={donationFilterDonorName} onChange={e => setDonationFilterDonorName(e.target.value)} className="border rounded px-2 py-1 flex-1" />
+                  </div>
+                </div>
               </div>
 
               {donationsLoading && <div className="p-4 text-sm text-gray-500">Loading donations…</div>}
@@ -975,56 +1129,85 @@ function DashboardPageContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {donations.map((d, idx) => (
-                      <tr key={d.id || `donation-${idx}`} className="border-t group hover:bg-gray-50 transition-colors">
-                        <td className="p-2">{formatDate(d.date)}</td>
-                        <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || '—'}</td>
-                        <td className="p-2">{formatCurrency(d.amount || 0)}</td>
-                        <td className="p-2">
-                          {d.method ? (
-                            <Badge className="bg-blue-500 text-white">{d.method}</Badge>
-                          ) : (
-                            <Badge className="bg-gray-300 text-black">—</Badge>
-                          )}
-                        </td>
-                        <td className="p-2">
-                          <button
-                            onClick={() => openNoteDialog(d)}
-                            className="text-left text-gray-600 hover:text-blue-600 hover:underline"
-                          >
-                            {d.notes || 'Add note...'}
-                          </button>
-                        </td>
-                        <td className="p-2 text-right">
-                          <button
-                            aria-label="Edit donation"
-                            title="Edit donation"
-                            className="text-blue-500 hover:text-white hover:bg-blue-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition inline-flex"
-                            onClick={(e) => { e.stopPropagation(); openDonationDialog(d) }}
-                            type="button"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                        <td className="p-2 text-right">
-                          <button
-                            aria-label="Delete donation"
-                            title="Delete donation"
-                            className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteDonation(d.id) }}
-                            type="button"
-                            disabled={deletingId === d.id}
-                          >
-                            <span className="sr-only">Delete</span>
-                            {deletingId === d.id ? (
-                              <span className="animate-spin">⏳</span>
+                    {(function () {
+                      const start = donationFilterStart ? new Date(donationFilterStart) : null
+                      const end = donationFilterEnd ? new Date(donationFilterEnd) : null
+                      const min = donationFilterMinAmount ? Number(donationFilterMinAmount) : null
+                      const max = donationFilterMaxAmount ? Number(donationFilterMaxAmount) : null
+                      const rows = (Array.isArray(donations) ? donations : []).filter(d => {
+                        try {
+                          if (donationFilterType && d.method !== donationFilterType) return false
+                          if (donationFilterDonorName) {
+                            const name = `${d.donor?.firstName || d.firstName || ''} ${d.donor?.lastName || d.lastName || ''}`.toLowerCase()
+                            if (!name.includes(donationFilterDonorName.toLowerCase())) return false
+                          }
+                          if (min !== null && Number(d.amount || d.totalAmount || 0) < min) return false
+                          if (max !== null && Number(d.amount || d.totalAmount || 0) > max) return false
+                          if (start || end) {
+                            const dt = new Date(d.date || d.createdAt || d.updatedAt)
+                            if (start && dt < start) return false
+                            if (end) {
+                              const endDay = new Date(end)
+                              endDay.setHours(23, 59, 59, 999)
+                              if (dt > endDay) return false
+                            }
+                          }
+                          return true
+                        } catch (e) {
+                          return true
+                        }
+                      })
+                      return rows.map((d, idx) => (
+                        <tr key={d.id || `donation-${idx}`} className="border-t group hover:bg-gray-50 transition-colors">
+                          <td className="p-2">{formatDate(d.date)}</td>
+                          <td className="p-2">{(d.donor && `${d.donor.firstName || ''} ${d.donor.lastName || ''}`.trim()) || (d.firstName || d.lastName ? `${d.firstName || ''} ${d.lastName || ''}`.trim() : '—')}</td>
+                          <td className="p-2">{formatCurrency(d.amount || d.totalAmount || 0)}</td>
+                          <td className="p-2">
+                            {d.method ? (
+                              <Badge className="bg-blue-500 text-white">{d.method}</Badge>
                             ) : (
-                              '×'
+                              <Badge className="bg-gray-300 text-black">—</Badge>
                             )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="p-2">
+                            <button
+                              onClick={() => openNoteDialog(d)}
+                              className="text-left text-gray-600 hover:text-blue-600 hover:underline"
+                            >
+                              {d.notes || 'Add note...'}
+                            </button>
+                          </td>
+                          <td className="p-2 text-right">
+                            <button
+                              aria-label="Edit donation"
+                              title="Edit donation"
+                              className="text-blue-500 hover:text-white hover:bg-blue-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition inline-flex"
+                              onClick={(e) => { e.stopPropagation(); openDonationDialog(d) }}
+                              type="button"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                          <td className="p-2 text-right">
+                            <button
+                              aria-label="Delete donation"
+                              title="Delete donation"
+                              className="text-red-500 hover:text-white hover:bg-red-500 rounded-full w-7 h-7 flex items-center justify-center opacity-70 group-hover:opacity-100 transition"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteDonation(d.id) }}
+                              type="button"
+                              disabled={deletingId === d.id}
+                            >
+                              <span className="sr-only">Delete</span>
+                              {deletingId === d.id ? (
+                                <span className="animate-spin">⏳</span>
+                              ) : (
+                                '×'
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    })()}
                   </tbody>
                 </table>
               )}
@@ -1223,73 +1406,17 @@ function DashboardPageContent() {
             <DialogTitle>{editingDonorId ? `Edit ${donorForm.firstName || 'Donor'} ${donorForm.lastName || ''}`.trim() : 'Add Donor'}</DialogTitle>
           </DialogHeader>
 
-          <div className="py-4 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  value={donorForm.firstName}
-                  onChange={(e) => setDonorForm(f => ({ ...f, firstName: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <input
-                  type="text"
-                  value={donorForm.lastName}
-                  onChange={(e) => setDonorForm(f => ({ ...f, lastName: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                <input
-                  type="tel"
-                  value={donorForm.phone}
-                  onChange={(e) => setDonorForm(f => ({ ...f, phone: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input
-                  type="text"
-                  value={donorForm.city}
-                  onChange={(e) => setDonorForm(f => ({ ...f, city: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                value={donorForm.email}
-                onChange={(e) => setDonorForm(f => ({ ...f, email: e.target.value }))}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-              <input
-                type="text"
-                value={donorForm.state}
-                onChange={(e) => setDonorForm(f => ({ ...f, state: e.target.value }))}
-                className="w-full border rounded-md px-3 py-2"
-              />
-            </div>
+          {donorError && <p className="text-red-600 text-sm px-4">{donorError}</p>}
 
-            {donorError && <p className="text-red-600 text-sm">{donorError}</p>}
+          <div className="py-4">
+            <DonorForm
+              donor={donorForm}
+              onSubmit={(payload) => saveDonor(payload)}
+              onCancel={() => setDonorDialogOpen(false)}
+              submitLabel={editingDonorId ? 'Update Donor' : 'Save Donor'}
+            />
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDonorDialogOpen(false)} disabled={donorSaving}>Cancel</Button>
-            <Button variant="outline" onClick={saveDonor} disabled={donorSaving}>{donorSaving ? (editingDonorId ? 'Updating...' : 'Saving...') : (editingDonorId ? 'Update Donor' : 'Save Donor')}</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog >
 
@@ -1300,64 +1427,13 @@ function DashboardPageContent() {
             <DialogTitle>{editingDonationId ? `Edit Donation` : 'Record Donation'}</DialogTitle>
           </DialogHeader>
 
-          <div className="py-4 space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Donor</label>
-              <select
-                value={donationForm.donorId}
-                onChange={(e) => setDonationForm(f => ({ ...f, donorId: e.target.value }))}
-                className="w-full border rounded-md px-3 py-2"
-              >
-                <option value="">Select a donor…</option>
-                {Array.isArray(donors) && donors.map(d => (
-                  <option key={d.id} value={d.id}>{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={donationForm.amount}
-                  onChange={(e) => setDonationForm(f => ({ ...f, amount: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                <input
-                  type="text"
-                  value={donationForm.method}
-                  onChange={(e) => setDonationForm(f => ({ ...f, method: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  value={donationForm.date}
-                  onChange={(e) => setDonationForm(f => ({ ...f, date: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                <input
-                  type="text"
-                  value={donationForm.notes}
-                  onChange={(e) => setDonationForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full border rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
+          <DonationForm
+            donation={donationForm}
+            donors={donors}
+            onChange={(field, value) => setDonationForm(f => ({ ...f, [field]: value }))}
+          />
 
-            {donationError && <p className="text-red-600 text-sm">{donationError}</p>}
-          </div>
+          {donationError && <p className="text-red-600 text-sm">{donationError}</p>}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDonationDialogOpen(false)} disabled={donationSaving}>Cancel</Button>

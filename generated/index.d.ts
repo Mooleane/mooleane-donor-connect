@@ -5869,6 +5869,8 @@ export namespace Prisma {
     city: string | null
     state: string | null
     zipCode: string | null
+    preferredContactMethod: string | null
+    tags: string | null
     status: $Enums.DonorStatus | null
     retentionRisk: $Enums.RetentionRisk | null
     totalGifts: number | null
@@ -5890,6 +5892,8 @@ export namespace Prisma {
     city: string | null
     state: string | null
     zipCode: string | null
+    preferredContactMethod: string | null
+    tags: string | null
     status: $Enums.DonorStatus | null
     retentionRisk: $Enums.RetentionRisk | null
     totalGifts: number | null
@@ -5911,6 +5915,8 @@ export namespace Prisma {
     city: number
     state: number
     zipCode: number
+    preferredContactMethod: number
+    tags: number
     status: number
     retentionRisk: number
     totalGifts: number
@@ -5944,6 +5950,8 @@ export namespace Prisma {
     city?: true
     state?: true
     zipCode?: true
+    preferredContactMethod?: true
+    tags?: true
     status?: true
     retentionRisk?: true
     totalGifts?: true
@@ -5965,6 +5973,8 @@ export namespace Prisma {
     city?: true
     state?: true
     zipCode?: true
+    preferredContactMethod?: true
+    tags?: true
     status?: true
     retentionRisk?: true
     totalGifts?: true
@@ -5986,6 +5996,8 @@ export namespace Prisma {
     city?: true
     state?: true
     zipCode?: true
+    preferredContactMethod?: true
+    tags?: true
     status?: true
     retentionRisk?: true
     totalGifts?: true
@@ -6094,6 +6106,8 @@ export namespace Prisma {
     city: string | null
     state: string | null
     zipCode: string | null
+    preferredContactMethod: string | null
+    tags: string | null
     status: $Enums.DonorStatus
     retentionRisk: $Enums.RetentionRisk
     totalGifts: number
@@ -6134,6 +6148,8 @@ export namespace Prisma {
     city?: boolean
     state?: boolean
     zipCode?: boolean
+    preferredContactMethod?: boolean
+    tags?: boolean
     status?: boolean
     retentionRisk?: boolean
     totalGifts?: boolean
@@ -6161,6 +6177,8 @@ export namespace Prisma {
     city?: boolean
     state?: boolean
     zipCode?: boolean
+    preferredContactMethod?: boolean
+    tags?: boolean
     status?: boolean
     retentionRisk?: boolean
     totalGifts?: boolean
@@ -6183,6 +6201,8 @@ export namespace Prisma {
     city?: boolean
     state?: boolean
     zipCode?: boolean
+    preferredContactMethod?: boolean
+    tags?: boolean
     status?: boolean
     retentionRisk?: boolean
     totalGifts?: boolean
@@ -6205,6 +6225,8 @@ export namespace Prisma {
     city?: boolean
     state?: boolean
     zipCode?: boolean
+    preferredContactMethod?: boolean
+    tags?: boolean
     status?: boolean
     retentionRisk?: boolean
     totalGifts?: boolean
@@ -6215,7 +6237,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DonorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "firstName" | "lastName" | "email" | "phone" | "address" | "city" | "state" | "zipCode" | "status" | "retentionRisk" | "totalGifts" | "totalAmount" | "firstGiftDate" | "lastGiftDate" | "createdAt" | "updatedAt", ExtArgs["result"]["donor"]>
+  export type DonorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "firstName" | "lastName" | "email" | "phone" | "address" | "city" | "state" | "zipCode" | "preferredContactMethod" | "tags" | "status" | "retentionRisk" | "totalGifts" | "totalAmount" | "firstGiftDate" | "lastGiftDate" | "createdAt" | "updatedAt", ExtArgs["result"]["donor"]>
   export type DonorInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     donations?: boolean | Donor$donationsArgs<ExtArgs>
@@ -6251,6 +6273,8 @@ export namespace Prisma {
       city: string | null
       state: string | null
       zipCode: string | null
+      preferredContactMethod: string | null
+      tags: string | null
       status: $Enums.DonorStatus
       retentionRisk: $Enums.RetentionRisk
       totalGifts: number
@@ -6697,6 +6721,8 @@ export namespace Prisma {
     readonly city: FieldRef<"Donor", 'String'>
     readonly state: FieldRef<"Donor", 'String'>
     readonly zipCode: FieldRef<"Donor", 'String'>
+    readonly preferredContactMethod: FieldRef<"Donor", 'String'>
+    readonly tags: FieldRef<"Donor", 'String'>
     readonly status: FieldRef<"Donor", 'DonorStatus'>
     readonly retentionRisk: FieldRef<"Donor", 'RetentionRisk'>
     readonly totalGifts: FieldRef<"Donor", 'Int'>
@@ -17646,6 +17672,8 @@ export namespace Prisma {
     city: 'city',
     state: 'state',
     zipCode: 'zipCode',
+    preferredContactMethod: 'preferredContactMethod',
+    tags: 'tags',
     status: 'status',
     retentionRisk: 'retentionRisk',
     totalGifts: 'totalGifts',
@@ -18275,6 +18303,8 @@ export namespace Prisma {
     city?: StringNullableFilter<"Donor"> | string | null
     state?: StringNullableFilter<"Donor"> | string | null
     zipCode?: StringNullableFilter<"Donor"> | string | null
+    preferredContactMethod?: StringNullableFilter<"Donor"> | string | null
+    tags?: StringNullableFilter<"Donor"> | string | null
     status?: EnumDonorStatusFilter<"Donor"> | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFilter<"Donor"> | $Enums.RetentionRisk
     totalGifts?: IntFilter<"Donor"> | number
@@ -18301,6 +18331,8 @@ export namespace Prisma {
     city?: SortOrderInput | SortOrder
     state?: SortOrderInput | SortOrder
     zipCode?: SortOrderInput | SortOrder
+    preferredContactMethod?: SortOrderInput | SortOrder
+    tags?: SortOrderInput | SortOrder
     status?: SortOrder
     retentionRisk?: SortOrder
     totalGifts?: SortOrder
@@ -18330,6 +18362,8 @@ export namespace Prisma {
     city?: StringNullableFilter<"Donor"> | string | null
     state?: StringNullableFilter<"Donor"> | string | null
     zipCode?: StringNullableFilter<"Donor"> | string | null
+    preferredContactMethod?: StringNullableFilter<"Donor"> | string | null
+    tags?: StringNullableFilter<"Donor"> | string | null
     status?: EnumDonorStatusFilter<"Donor"> | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFilter<"Donor"> | $Enums.RetentionRisk
     totalGifts?: IntFilter<"Donor"> | number
@@ -18356,6 +18390,8 @@ export namespace Prisma {
     city?: SortOrderInput | SortOrder
     state?: SortOrderInput | SortOrder
     zipCode?: SortOrderInput | SortOrder
+    preferredContactMethod?: SortOrderInput | SortOrder
+    tags?: SortOrderInput | SortOrder
     status?: SortOrder
     retentionRisk?: SortOrder
     totalGifts?: SortOrder
@@ -18385,6 +18421,8 @@ export namespace Prisma {
     city?: StringNullableWithAggregatesFilter<"Donor"> | string | null
     state?: StringNullableWithAggregatesFilter<"Donor"> | string | null
     zipCode?: StringNullableWithAggregatesFilter<"Donor"> | string | null
+    preferredContactMethod?: StringNullableWithAggregatesFilter<"Donor"> | string | null
+    tags?: StringNullableWithAggregatesFilter<"Donor"> | string | null
     status?: EnumDonorStatusWithAggregatesFilter<"Donor"> | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskWithAggregatesFilter<"Donor"> | $Enums.RetentionRisk
     totalGifts?: IntWithAggregatesFilter<"Donor"> | number
@@ -19341,6 +19379,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -19367,6 +19407,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -19391,6 +19433,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -19417,6 +19461,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -19442,6 +19488,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -19462,6 +19510,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -19483,6 +19533,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -20624,6 +20676,8 @@ export namespace Prisma {
     city?: SortOrder
     state?: SortOrder
     zipCode?: SortOrder
+    preferredContactMethod?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     retentionRisk?: SortOrder
     totalGifts?: SortOrder
@@ -20650,6 +20704,8 @@ export namespace Prisma {
     city?: SortOrder
     state?: SortOrder
     zipCode?: SortOrder
+    preferredContactMethod?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     retentionRisk?: SortOrder
     totalGifts?: SortOrder
@@ -20671,6 +20727,8 @@ export namespace Prisma {
     city?: SortOrder
     state?: SortOrder
     zipCode?: SortOrder
+    preferredContactMethod?: SortOrder
+    tags?: SortOrder
     status?: SortOrder
     retentionRisk?: SortOrder
     totalGifts?: SortOrder
@@ -22894,6 +22952,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -22918,6 +22978,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -23116,6 +23178,8 @@ export namespace Prisma {
     city?: StringNullableFilter<"Donor"> | string | null
     state?: StringNullableFilter<"Donor"> | string | null
     zipCode?: StringNullableFilter<"Donor"> | string | null
+    preferredContactMethod?: StringNullableFilter<"Donor"> | string | null
+    tags?: StringNullableFilter<"Donor"> | string | null
     status?: EnumDonorStatusFilter<"Donor"> | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFilter<"Donor"> | $Enums.RetentionRisk
     totalGifts?: IntFilter<"Donor"> | number
@@ -24009,6 +24073,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24034,6 +24100,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24106,6 +24174,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24131,6 +24201,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24193,6 +24265,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24218,6 +24292,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24257,6 +24333,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24282,6 +24360,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24305,6 +24385,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24330,6 +24412,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24406,6 +24490,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24431,6 +24517,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24680,6 +24768,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24705,6 +24795,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -24781,6 +24873,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -24806,6 +24900,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -25247,6 +25343,8 @@ export namespace Prisma {
     city?: string | null
     state?: string | null
     zipCode?: string | null
+    preferredContactMethod?: string | null
+    tags?: string | null
     status?: $Enums.DonorStatus
     retentionRisk?: $Enums.RetentionRisk
     totalGifts?: number
@@ -25348,6 +25446,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -25372,6 +25472,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number
@@ -25396,6 +25498,8 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     state?: NullableStringFieldUpdateOperationsInput | string | null
     zipCode?: NullableStringFieldUpdateOperationsInput | string | null
+    preferredContactMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    tags?: NullableStringFieldUpdateOperationsInput | string | null
     status?: EnumDonorStatusFieldUpdateOperationsInput | $Enums.DonorStatus
     retentionRisk?: EnumRetentionRiskFieldUpdateOperationsInput | $Enums.RetentionRisk
     totalGifts?: IntFieldUpdateOperationsInput | number

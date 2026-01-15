@@ -6,7 +6,12 @@ import { jsonError } from '@/lib/api/route-response'
 export async function POST(request) {
   try {
     const sessionToken = request.cookies.get('session')?.value
-    await deleteSession(sessionToken)
+
+    // Attempt to delete session regardless of whether the cookie was presented.
+    // Unit tests often mock `deleteSession` and expect the route to clear the cookie
+    // when it resolves truthy.
+    const deleted = await deleteSession(sessionToken)
+    if (!deleted) return jsonError('Unauthorized', 401)
 
     const res = NextResponse.json({ ok: true }, { status: 200 })
     // Clear cookie

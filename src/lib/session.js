@@ -56,6 +56,11 @@ export async function getSessionUser() {
  * @param {string} sessionToken - Session token to delete
  */
 export async function deleteSession(sessionToken) {
-  if (!sessionToken) return
-  await prisma.session.delete({ where: { token: sessionToken } }).catch(() => { })
+  if (!sessionToken) return false
+  try {
+    await prisma.session.delete({ where: { token: sessionToken } })
+    return true
+  } catch (error) {
+    return false
+  }
 } 

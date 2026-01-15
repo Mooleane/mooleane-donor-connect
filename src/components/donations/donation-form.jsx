@@ -3,52 +3,111 @@
  * TODO: Implement form for creating/editing donations
  */
 
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import React from 'react'
 
-export function DonationForm({ donation, donors, onSubmit, onCancel }) {
-  // TODO: Import and use donation validation schema
-  // const schema = createDonationSchema // TODO: Import from validation
-  
-  // TODO: Initialize form with react-hook-form and zod resolver
-  const form = {
-    // TODO: Implement useForm with:
-    // - resolver: zodResolver(schema)
-    // - defaultValues for edit mode
+/**
+ * Reusable DonationForm — mirrors the dashboard dialog HTML so tests and UI match.
+ * Props:
+ * - donation: object with donorId, amount, method, date, notes
+ * - donors: array of donor options
+ * - onChange: function(field, value) called on input changes
+ * - onSubmit: optional submit handler if used as a standalone form
+ */
+export function DonationForm({ donation = {}, donors = [], onChange, onSubmit, onCancel }) {
+  const handleChange = (field) => (e) => {
+    const v = e.target.value
+    if (typeof onChange === 'function') onChange(field, v)
   }
 
-  // TODO: Implement form submission handler
-  const handleSubmit = async (data) => {
-    // TODO: Call onSubmit prop with form data
-    // TODO: Handle form errors
+  const handleSubmit = (e) => {
+    if (typeof onSubmit !== 'function') return
+    e.preventDefault()
+    const payload = {
+      donorId: donation.donorId || '',
+      amount: donation.amount || '',
+      method: donation.method || '',
+      date: donation.date || '',
+      notes: donation.notes || ''
+    }
+    onSubmit(payload)
   }
 
   return (
-    <>
-      {/* TODO: Implement donation form with fields:
-          - donorId (select from donors)
-          - amount (number input with proper validation)
-          - donationType (select: one-time, monthly, annual)
-          - date (date input)
-          - campaignId (optional select)
-          - notes (textarea, optional)
-      */}
-      
-      {/* TODO: Add form validation and error handling */}
-      {/* TODO: Add submit and cancel buttons */}
-      {/* TODO: Handle loading state during submission */}
-    </>
+    <div className="py-4 space-y-3">
+      <div>
+        <label htmlFor="donorId" className="block text-sm font-medium text-gray-700 mb-1">Donor</label>
+        <select
+          id="donorId"
+          name="donorId"
+          value={donation.donorId || ''}
+          onChange={handleChange('donorId')}
+          className="w-full border rounded-md px-3 py-2"
+        >
+          <option value="">Select a donor…</option>
+          {Array.isArray(donors) && donors.map(d => (
+            <option key={d.id} value={d.id}>{`${d.firstName || ''} ${d.lastName || ''}`.trim() || '—'}</option>
+          ))}
+        </select>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+          <input
+            id="amount"
+            name="amount"
+            type="number"
+            step="0.01"
+            value={donation.amount || ''}
+            onChange={handleChange('amount')}
+            className="w-full border rounded-md px-3 py-2"
+          />
+        </div>
+        <div>
+          <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+          <input
+            id="method"
+            name="method"
+            type="text"
+            value={donation.method || ''}
+            onChange={handleChange('method')}
+            className="w-full border rounded-md px-3 py-2"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+          <input
+            id="date"
+            name="date"
+            type="date"
+            value={donation.date || ''}
+            onChange={handleChange('date')}
+            className="w-full border rounded-md px-3 py-2"
+          />
+        </div>
+        <div>
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <input
+            id="notes"
+            name="notes"
+            type="text"
+            value={donation.notes || ''}
+            onChange={handleChange('notes')}
+            className="w-full border rounded-md px-3 py-2"
+          />
+        </div>
+      </div>
+      {typeof onSubmit === 'function' && (
+        <div className="pt-2">
+          <button onClick={handleSubmit} className="inline-flex items-center px-3 py-2 border rounded-md">Save</button>
+          {typeof onCancel === 'function' && (
+            <button onClick={onCancel} className="ml-2 inline-flex items-center px-3 py-2 border rounded-md">Cancel</button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
-// TODO: Example usage:
-// <DonationForm 
-//   donation={editingDonation} 
-//   donors={allDonors}
-//   onSubmit={handleCreateDonation}
-//   onCancel={() => setShowForm(false)}
-// />
+export default DonationForm

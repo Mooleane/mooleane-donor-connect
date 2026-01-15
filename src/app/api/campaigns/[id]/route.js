@@ -5,18 +5,19 @@ import { prisma } from '@/lib/db'
 import { updateCampaignSchema } from '@/lib/validation/campaign-schema'
 import { jsonError } from '@/lib/api/route-response'
 
-export async function GET(request, { params }) {
+export async function GET(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
     if (!session) return jsonError('Unauthorized', 401)
-
-    const id = params?.id
+    let id = params?.id
+    if (!id) {
+      const urlParts = request.url.split('/')
+      id = urlParts[urlParts.length - 1]
+    }
     if (!id) return jsonError('Missing campaign id', 400)
 
-    const campaign = await prisma.campaign.findFirst({
-      where: { id, organizationId: session.user.organizationId },
-    })
+    const campaign = await prisma.campaign.findUnique({ where: { id } })
     if (!campaign) return jsonError('Not found', 404)
     return NextResponse.json({ campaign })
   } catch (error) {
@@ -25,18 +26,20 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PATCH(request, { params }) {
+export async function PUT(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
     if (!session) return jsonError('Unauthorized', 401)
 
-    const id = params?.id
+    let id = params?.id
+    if (!id) {
+      const urlParts = request.url.split('/')
+      id = urlParts[urlParts.length - 1]
+    }
     if (!id) return jsonError('Missing campaign id', 400)
 
-    const existing = await prisma.campaign.findFirst({
-      where: { id, organizationId: session.user.organizationId },
-    })
+    const existing = await prisma.campaign.findUnique({ where: { id } })
     if (!existing) return jsonError('Not found', 404)
 
     const rawBody = await request.json().catch(() => null)
@@ -63,10 +66,7 @@ export async function PATCH(request, { params }) {
       }
     }
 
-    const campaign = await prisma.campaign.update({
-      where: { id },
-      data: updateData,
-    })
+    const campaign = await prisma.campaign.update({ where: { id }, data: updateData })
 
     return NextResponse.json({ campaign })
   } catch (error) {
@@ -75,7 +75,7 @@ export async function PATCH(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)

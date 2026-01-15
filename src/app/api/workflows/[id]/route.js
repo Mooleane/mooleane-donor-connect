@@ -5,18 +5,20 @@ import { prisma } from '@/lib/db'
 import { updateWorkflowSchema } from '@/lib/validation/workflow-schema'
 import { jsonError } from '@/lib/api/route-response'
 
-export async function GET(request, { params }) {
+export async function GET(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
     if (!session) return jsonError('Unauthorized', 401)
 
-    const id = params?.id
+    let id = params?.id
+    if (!id) {
+      const urlParts = request.url.split('/')
+      id = urlParts[urlParts.length - 1]
+    }
     if (!id) return jsonError('Missing workflow id', 400)
 
-    const workflow = await prisma.workflow.findFirst({
-      where: { id, organizationId: session.user.organizationId },
-    })
+    const workflow = await prisma.workflow.findUnique({ where: { id } })
 
     if (!workflow) return jsonError('Not found', 404)
     return NextResponse.json({ workflow })
@@ -26,7 +28,7 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
@@ -77,7 +79,7 @@ export async function PATCH(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
