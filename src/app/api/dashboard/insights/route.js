@@ -71,8 +71,7 @@ export async function GET(request) {
             include: {
                 donor: {
                     select: {
-                        firstName: true,
-                        lastName: true,
+                        // Exclude PII: do NOT select firstName/lastName/email/phone
                         retentionRisk: true,
                         totalGifts: true,
                         totalAmount: true
@@ -106,7 +105,8 @@ export async function GET(request) {
             type: d.type,
             method: d.method,
             notes: d.notes,
-            donorName: d.donor ? `${d.donor.firstName} ${d.donor.lastName}` : 'Unknown',
+            // Do NOT include donor first/last name or any contact info
+            donorId: d.donor ? (d.donor.id || null) : null,
             donorRisk: d.donor?.retentionRisk || 'UNKNOWN',
             donorTotalGifts: d.donor?.totalGifts || 0,
             campaign: d.campaign?.name || null
@@ -134,7 +134,8 @@ export async function GET(request) {
         // Extract notes for context
         const notesWithContext = donations
             .filter(d => d.notes && d.notes.trim())
-            .map(d => `- ${d.donor?.firstName || 'Unknown'}: "${d.notes}"`)
+            // Include only the note text and non-PII donor context (risk / gift counts)
+            .map(d => `- [risk=${d.donor?.retentionRisk || 'UNKNOWN'} gifts=${d.donor?.totalGifts || 0}]: "${d.notes}"`)
             .slice(0, 10) // Limit to 10 notes
 
         // Build the prompt
@@ -147,6 +148,8 @@ export async function GET(request) {
     - Most active days: ${mostActiveDays.join(', ') || 'N/A'}
     - Donations by day of week: ${JSON.stringify(donationsByDayOfWeek)}
 
+    NOTE: Do NOT include or reveal donor first/last names, emails, phone numbers, or any contact information in your response.
+
     DONATION DETAILS (sample):
     ${JSON.stringify(donationSummary.slice(0, 20), null, 2)}
 
@@ -154,8 +157,8 @@ export async function GET(request) {
 
     Based on this data, provide 3-5 brief insights as bullet points. Focus on:
     - Patterns in donation timing (days, weekdays vs weekends)
-    - Notable donations or donor behaviors
-    - Insights from the donation notes if relevant
+    - Notable donations or donor behaviors (do not identify donors by name or contact)
+    - Insights from the donation notes if relevant (do not include donor names or contact info)
     - Actionable recommendations for donor retention
     - Any concerning trends or opportunities
 
