@@ -19,23 +19,20 @@ export default function OnboardingPage() {
   const [createError, setCreateError] = useState(null)
 
   useEffect(() => {
-    if (!query) {
-      setResults([])
-      return
-    }
-
     let mounted = true
     setLoading(true)
     setError(null)
 
-    // Simple search against API (expects /api/organizations?search=...)
-    fetch(`/api/organizations?search=${encodeURIComponent(query)}`, { credentials: 'include' })
+    // If there's a query, use the search param; otherwise fetch all organizations
+    const url = query ? `/api/organizations?search=${encodeURIComponent(query)}` : `/api/organizations?limit=100`
+
+    fetch(url, { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return
         setResults(data.organizations || [])
       })
-      .catch((err) => {
+      .catch(() => {
         if (!mounted) return
         setError('Unable to search organizations')
       })
