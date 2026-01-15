@@ -1,6 +1,7 @@
 import './globals.css'
 import Sidebar from '@/components/dashboard/sidebar'
 import Topbar from '@/components/dashboard/topbar'
+import ClientRootWrapper from '@/components/layout/ClientRootWrapper'
 
 export const metadata = {
   title: 'DonorConnect - Donor Retention Platform',
@@ -10,13 +11,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="flex h-screen">
+      <body className="flex h-screen overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Topbar />
           <main className="flex-1 overflow-x-hidden overflow-y-auto">
             <div className="container mx-auto px-6 py-8">
-              {children}
+              <ClientRootWrapper>
+                {children}
+              </ClientRootWrapper>
             </div>
           </main>
         </div>
