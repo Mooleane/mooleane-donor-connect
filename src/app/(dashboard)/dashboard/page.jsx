@@ -959,7 +959,17 @@ function DashboardPageContent() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <label className="text-sm">Risk</label>
+                  <label className="text-sm flex items-center gap-1">
+                    Risk
+                    <button
+                      type="button"
+                      onClick={() => setRiskPopupOpen(true)}
+                      className="ml-1 text-gray-400 hover:text-gray-600"
+                      title="What is retention risk?"
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
+                  </label>
                   <select value={donorFilterRisk} onChange={e => setDonorFilterRisk(e.target.value)} className="border rounded px-2 py-1">
                     <option value="">Any</option>
                     <option value="LOW">Low</option>
@@ -1061,6 +1071,7 @@ function DashboardPageContent() {
                     donations={sorted}
                     onEdit={(d) => openDonorDialog(d)}
                     onDelete={(id) => handleDeleteDonor(id)}
+                    onShowRiskInfo={() => setRiskPopupOpen(true)}
                     isLoading={donorsLoading}
                   />
                 )
@@ -1397,15 +1408,15 @@ function DashboardPageContent() {
         </DialogContent>
       </Dialog >
 
-      {/* Risk Info Popup (Dialog) */}
+      {/* Retention Risk Popup (Dialog) */}
       <Dialog open={riskPopupOpen} onOpenChange={setRiskPopupOpen}>
         <DialogContent onClose={() => setRiskPopupOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Risk Level Explanation</DialogTitle>
+            <DialogTitle>Retention Risk Explanation</DialogTitle>
           </DialogHeader>
 
           <div className="py-2 text-sm text-gray-700">
-            <p className="mb-2">Risk level is derived from two factors:</p>
+            <p className="mb-2">Retention Risk is derived from two factors:</p>
             <ul className="list-disc ml-5">
               <li>Donation recency: less than 3 months = Low; 3–6 months = Medium; &gt;6 months = High.</li>
               <li>Contact completeness: having a phone number or email address reduces risk (Low vs Medium).</li>

@@ -50,17 +50,29 @@ export default function OnboardingPage() {
   }, [query])
 
   async function handleSelect(org) {
-    try {
-      if (typeof window !== 'undefined' && org) {
-        localStorage.setItem('selectedOrg', JSON.stringify(org))
-      }
-    } catch (e) {
-      // ignore localStorage errors
-    }
+    if (!org) return
 
-    // For a simple onboarding flow, selecting an org redirects to dashboard
-    // In a full flow, we'd call an endpoint to join the org or set it as current
-    router.push('/dashboard')
+    try {
+      const res = await fetch('/api/organizations/select', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ organizationId: org.id }),
+      })
+
+      if (!res.ok) {
+        // fallback to storing locally if server call fails
+        try { if (typeof window !== 'undefined') localStorage.setItem('selectedOrg', JSON.stringify(org)) } catch (e) { }
+        router.push('/dashboard')
+        return
+      }
+
+      // Success: navigate to dashboard (server session now reflects new organization)
+      router.push('/dashboard')
+    } catch (err) {
+      try { if (typeof window !== 'undefined') localStorage.setItem('selectedOrg', JSON.stringify(org)) } catch (e) { }
+      router.push('/dashboard')
+    }
   }
 
   async function handleCreate(e) {

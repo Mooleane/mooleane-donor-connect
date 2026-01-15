@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Edit2, Info } from 'lucide-react'
 import { formatCurrency, calculateDonorRiskLevel } from '@/lib/utils'
 
-export function DonationList({ donations = [], onEdit, onDelete, isLoading = false }) {
+export function DonationList({ donations = [], onEdit, onDelete, isLoading = false, onShowRiskInfo }) {
   const getRiskBadgeColor = (risk) => {
     switch (risk) {
       case 'LOW':
@@ -43,7 +43,19 @@ export function DonationList({ donations = [], onEdit, onDelete, isLoading = fal
               <th className="p-2">Tags</th>
               <th className="p-2">Total Amount</th>
               <th className="p-2">Total Gifts</th>
-              <th className="p-2">Risk Level</th>
+              <th className="p-2">
+                <div className="flex items-center gap-1">
+                  Retention Risk
+                  <button
+                    type="button"
+                    aria-label="Risk level info"
+                    onClick={(e) => { e.stopPropagation(); onShowRiskInfo && onShowRiskInfo() }}
+                    className="text-gray-400 hover:text-gray-600 ml-1"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </div>
+              </th>
               <th className="p-2 text-right">Edit</th>
               <th className="p-2 text-right">Delete</th>
             </tr>
