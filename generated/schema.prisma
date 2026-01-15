@@ -140,18 +140,20 @@ model Session {
 }
 
 model Donor {
-  id             String        @id @default(cuid())
-  organizationId String
-  firstName      String
-  lastName       String
-  email          String?
-  phone          String?
-  address        String?
-  city           String?
-  state          String?
-  zipCode        String?
-  status         DonorStatus   @default(ACTIVE)
-  retentionRisk  RetentionRisk @default(UNKNOWN)
+  id                     String        @id @default(cuid())
+  organizationId         String
+  firstName              String
+  lastName               String
+  email                  String?
+  phone                  String?
+  address                String?
+  city                   String?
+  state                  String?
+  zipCode                String?
+  preferredContactMethod String?
+  tags                   String?
+  status                 DonorStatus   @default(ACTIVE)
+  retentionRisk          RetentionRisk @default(UNKNOWN)
 
   // Metrics (calculated from donations)
   totalGifts    Int       @default(0)

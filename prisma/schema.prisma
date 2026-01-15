@@ -150,6 +150,8 @@ model Donor {
   city           String?
   state          String?
   zipCode        String?
+  preferredContactMethod String?
+  tags           String?
   status         DonorStatus   @default(ACTIVE)
   retentionRisk  RetentionRisk @default(UNKNOWN)
 

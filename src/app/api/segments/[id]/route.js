@@ -5,19 +5,20 @@ import { prisma } from '@/lib/db'
 import { updateSegmentSchema } from '@/lib/validation/segment-schema'
 import { jsonError } from '@/lib/api/route-response'
 
-export async function GET(request, { params }) {
+export async function GET(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
     if (!session) return jsonError('Unauthorized', 401)
 
-    const id = params?.id
+    let id = params?.id
+    if (!id) {
+      const urlParts = request.url.split('/')
+      id = urlParts[urlParts.length - 1]
+    }
     if (!id) return jsonError('Missing segment id', 400)
 
-    const segment = await prisma.segment.findFirst({
-      where: { id, organizationId: session.user.organizationId },
-      include: { members: { take: 100 } },
-    })
+    const segment = await prisma.segment.findUnique({ where: { id }, include: { members: { take: 100 } } })
     if (!segment) return jsonError('Not found', 404)
     return NextResponse.json({ segment })
   } catch (error) {
@@ -26,7 +27,7 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PATCH(request, { params }) {
+export async function PATCH(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)
@@ -73,7 +74,7 @@ export async function PATCH(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, { params } = {}) {
   try {
     const sessionToken = request.cookies.get('session')?.value
     const session = await getSession(sessionToken)

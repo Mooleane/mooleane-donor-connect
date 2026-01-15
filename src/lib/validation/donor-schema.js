@@ -18,8 +18,9 @@ const donorBaseSchema = z.object({
     city: z.string().optional().nullable(),
     state: z.string().optional().nullable(),
     zipCode: z.string().optional().nullable(),
-
     status: DonorStatusEnum.optional(),
+    preferredContactMethod: z.enum(['email', 'phone', 'mail']).optional(),
+    tags: z.string().optional().nullable(),
     retentionRisk: RetentionRiskEnum.optional(),
     notes: z.string().max(1000, 'Notes must be 1000 characters or less').optional().nullable(),
 })
@@ -47,6 +48,8 @@ export const updateDonorSchema = z.object({
     state: z.string().optional().nullable(),
     zipCode: z.string().optional().nullable(),
     status: DonorStatusEnum.optional(),
+    preferredContactMethod: z.enum(['email', 'phone', 'mail']).optional(),
+    tags: z.string().optional().nullable(),
     retentionRisk: RetentionRiskEnum.optional(),
     notes: z.string().max(1000, 'Notes must be 1000 characters or less').optional().nullable(),
 })
