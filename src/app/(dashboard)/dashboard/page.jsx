@@ -62,6 +62,7 @@ function DashboardPageContent() {
   const [donorFilterZip, setDonorFilterZip] = useState('')
   const [donorFilterPhone, setDonorFilterPhone] = useState('')
   const [donorFilterRisk, setDonorFilterRisk] = useState('') // '', 'LOW','MEDIUM','HIGH'
+  const [donorFilterStatus, setDonorFilterStatus] = useState('') // '', 'ACTIVE','LAPSED','INACTIVE','DO_NOT_CONTACT'
   const [donorFilterMinGifts, setDonorFilterMinGifts] = useState('')
   const [donorSortOrder, setDonorSortOrder] = useState('totalDesc') // 'totalDesc' | 'totalAsc'
 
@@ -490,7 +491,9 @@ function DashboardPageContent() {
     setDonorsLoading(true)
     setDonorsError('')
     try {
-      const res = await fetch(`/api/donors?sort=totalDesc&page=${donorsPage}&limit=${donorsLimit}`)
+      let url = `/api/donors?sort=${donorSortOrder}&page=${donorsPage}&limit=${donorsLimit}`
+      if (donorFilterStatus) url += `&status=${encodeURIComponent(donorFilterStatus)}`
+      const res = await fetch(url)
       if (!res.ok) throw new Error('Failed to load donors')
       const payload = await res.json()
       setDonors(payload.donors || [])
@@ -699,9 +702,10 @@ function DashboardPageContent() {
   // Fetch data when tab changes or pagination changes
   useEffect(() => {
     if (activeTab === 'donors') {
+      // Fetch donors when page, status filter, or sort order changes
       fetchDonors()
     }
-  }, [activeTab, donorsPage])
+  }, [activeTab, donorsPage, donorFilterStatus, donorSortOrder])
 
   useEffect(() => {
     if (activeTab === 'donors') {
@@ -965,6 +969,17 @@ function DashboardPageContent() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <label className="text-sm">Status</label>
+                  <select value={donorFilterStatus} onChange={e => setDonorFilterStatus(e.target.value)} className="border rounded px-2 py-1">
+                    <option value="">Any</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="LAPSED">Lapsed</option>
+                    <option value="INACTIVE">Inactive</option>
+                    <option value="DO_NOT_CONTACT">Do Not Contact</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <label className="text-sm">Min Gifts</label>
                   <input type="number" min="0" placeholder="0" value={donorFilterMinGifts} onChange={e => setDonorFilterMinGifts(e.target.value)} className="border rounded px-2 py-1 w-20" />
                 </div>
@@ -979,7 +994,7 @@ function DashboardPageContent() {
 
                 <div className="flex items-center gap-2 ml-auto">
                   <button className="px-3 py-1 border rounded" onClick={() => {
-                    setDonorFilterName(''); setDonorFilterTags(''); setDonorFilterEmail(''); setDonorFilterCityState(''); setDonorFilterZip(''); setDonorFilterPhone(''); setDonorFilterRisk(''); setDonorFilterMinGifts(''); setDonorSortOrder('totalDesc')
+                    setDonorFilterName(''); setDonorFilterTags(''); setDonorFilterEmail(''); setDonorFilterCityState(''); setDonorFilterZip(''); setDonorFilterPhone(''); setDonorFilterRisk(''); setDonorFilterStatus(''); setDonorFilterMinGifts(''); setDonorSortOrder('totalDesc')
                   }}>Reset</button>
                 </div>
               </div>
@@ -996,6 +1011,7 @@ function DashboardPageContent() {
                   zip: donorFilterZip.trim(),
                   phone: donorFilterPhone.trim().toLowerCase(),
                   risk: donorFilterRisk,
+                  status: donorFilterStatus,
                   minGifts: donorFilterMinGifts ? Number(donorFilterMinGifts) : null,
                 }
 
@@ -1023,6 +1039,9 @@ function DashboardPageContent() {
                     if (filters.risk) {
                       const r = calculateDonorRiskLevel(d)
                       if (r !== filters.risk) return false
+                    }
+                    if (filters.status) {
+                      if ((d.status || '') !== filters.status) return false
                     }
                     return true
                   } catch (e) {
