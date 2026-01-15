@@ -7,7 +7,7 @@ export default function Page() {
                 <article className="prose prose-lg text-gray-800">
                     <h2 className="text-2xl font-semibold mt-6 mb-3">The Solution</h2>
                     <p>
-                        DonorConnect provides a system for managing up-to-date records, tools to detect duplicate info, and a
+                        DonorConnect provides a system for managing up-to-date records, tools to simplify donor management and donation recording, and a
                         feature to dig deeper on what data means.
                     </p>
 
@@ -29,14 +29,15 @@ export default function Page() {
                     <ul>
                         <li>- A dashboard will be used to access key features with little navigating</li>
                         <li>- Features will revolve around donation handling and gaining insights</li>
-                        <li>- Focus on suggestions being user-controlled</li>
+                        <li>- Focus on suggestions being user-controlled and anonymized to reduce privacy concerns</li>
                     </ul>
 
                     <h3 className="text-xl font-medium mt-4 mb-2">Summary of The System</h3>
                     <p>
-                        The dashboard brings a quick summary of statistics and useful tools so staff spend less time analyzing the data.
+                        The dashboard brings a quick summary of statistics from donors/donations data and an overview of recent activity based on monthly/lifetime donations.
+                        This allows staff to spend less time analyzing the data because they have quick access to the most important information.
                         The donors tab allows for easy creation of new donors, and the donations tab allows for easy recording of donations.
-                        The reports tab allows for easy generation of reports, and the notes tab allows for easy creation of notes that affect AI insights.
+                        The reports tab allows for easy generation of reports, and the notes feature allows donations to be much more detailed (also affecting AI insights).
                     </p>
 
                     <h3 className="text-xl font-medium mt-4 mb-2">The Project Plan</h3>

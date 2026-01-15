@@ -26,7 +26,7 @@ export default function Page() {
                     </a>
 
                     <a
-                        href="/why-donorconnect"
+                        href="/why-donor-connect"
                         className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md hover:bg-gray-50"
                     >
                         Why DonorConnect?

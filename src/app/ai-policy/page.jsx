@@ -27,9 +27,9 @@ export default function Page() {
 
                     <h3 className="text-xl font-medium mt-4 mb-2">How AI Improves The Solution</h3>
                     <p>
-                        AI is used to recognize patterns in donation data and flag spikes or drops that may be useful for
-                        fundraising teams. These lightweight, actionable insights give staff a starting point for investigation
-                        or follow-up without exposing sensitive information.
+                        AI is used to recognize patterns in donation data and mention spikes or drops that may be useful for
+                        fundraising teams. These actionable insights give staff a starting point for investigation
+                        or follow-up without involving sensitive information.
                     </p>
 
                     <h3 className="text-xl font-medium mt-4 mb-2">Safeguards &amp; Limitations</h3>
