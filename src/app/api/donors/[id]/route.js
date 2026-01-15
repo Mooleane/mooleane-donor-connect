@@ -1,9 +1,9 @@
 // Donors API - Individual Donor Operations
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
-import { prisma } from '@/lib/db'
 import { updateDonorSchema } from '@/lib/validation/donor-schema'
 import { jsonError } from '@/lib/api/route-response'
+import { getDonor, updateDonor, deleteDonor } from '@/lib/api/donors'
 
 export async function GET(request, { params } = {}) {
   try {
@@ -18,11 +18,7 @@ export async function GET(request, { params } = {}) {
     }
     if (!id) return jsonError('Missing donor id', 400)
 
-    const donor = await prisma.donor.findUnique({
-      where: { id },
-      include: { donations: { orderBy: { date: 'desc' }, take: 50, include: { campaign: true } } },
-    })
-
+    const donor = await getDonor({ id })
     if (!donor) return jsonError('Not found', 404)
     return NextResponse.json({ donor })
   } catch (error) {
@@ -73,12 +69,9 @@ export async function PUT(request, { params } = {}) {
 
     let updated
     try {
-      // Debug: log updateData to help diagnose failures
-      console.debug('Updating donor', id, updateData)
-      updated = await prisma.donor.update({ where: { id }, data: updateData })
+      updated = await updateDonor({ id, data: parsed.data })
     } catch (err) {
-      console.error('prisma.donor.update error for id', id, err)
-      // Return the actual error message to help debug in dev environment
+      console.error('updateDonor error for id', id, err)
       return jsonError(err.message || 'Not found', 500)
     }
 
@@ -102,12 +95,8 @@ export async function DELETE(request, { params } = {}) {
     }
     if (!id) return jsonError('Missing donor id', 400)
 
-    // Delete related donations first, then donor (tests mock delete directly)
     try {
-      if (prisma.donation && typeof prisma.donation.deleteMany === 'function') {
-        await prisma.donation.deleteMany({ where: { donorId: id } })
-      }
-      await prisma.donor.delete({ where: { id } })
+      await deleteDonor({ id })
     } catch (err) {
       return jsonError('Not found', 404)
     }

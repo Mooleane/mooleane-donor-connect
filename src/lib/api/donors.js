@@ -2,52 +2,125 @@
 import { prisma } from '../db'
 
 /**
- * TODO: Get a single donor by ID
- * @param {Object} params - Query parameters
- * @returns {Promise<Object|null>} Donor object or null
+ * List donors for an organization with simple paging/filtering
+ * @param {Object} opts
+ * @param {string} opts.organizationId
+ * @param {Object} opts.query - { sort, sortOrder, page, limit, search, status, retentionRisk }
  */
-export async function getDonor(params) {
-  // TODO: Query single donor with related data (donations, interactions, tasks)
-  // TODO: Calculate donor metrics (totalAmount, totalGifts, avgGift, lastGiftDate)
-  // TODO: Return donor object or null
+export async function listDonors({ organizationId, query = {} }) {
+  const { sort, sortOrder = 'asc', page = 1, limit = 20, search, status, retentionRisk } = query
+
+  const orderBy = sort === 'totalDesc' ? { totalAmount: sortOrder } : { lastName: sortOrder }
+  const where = { organizationId }
+
+  if (search) {
+    where.OR = [
+      { firstName: { contains: search, mode: 'insensitive' } },
+      { lastName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ]
+  }
+  if (status) where.status = status
+  if (retentionRisk) where.retentionRisk = retentionRisk
+
+  const skip = (Math.max(Number(page), 1) - 1) * Number(limit)
+  const take = Number(limit)
+
+  const [donors, total] = await Promise.all([
+    prisma.donor.findMany({ where, orderBy, skip, take }),
+    prisma.donor.count({ where }),
+  ])
+
+  return { donors, total, page: Number(page), limit: Number(limit) }
 }
 
-/**
- * TODO: Create a new donor
- * @param {Object} donorData - Donor data to create
- * @returns {Promise<Object>} Created donor object
- */
-export async function createDonor(donorData) {
-  // TODO: Create donor in database
-  // TODO: Return created donor with calculated fields
+export async function getDonor({ id }) {
+  if (!id) return null
+  const donor = await prisma.donor.findUnique({
+    where: { id },
+    include: { donations: { orderBy: { date: 'desc' }, take: 50, include: { campaign: true } } },
+  })
+  return donor
 }
 
-/**
- * TODO: Update an existing donor
- * @param {Object} params - Update parameters (id, organizationId, data)
- * @returns {Promise<Object>} Updated donor object
- */
-export async function updateDonor(params) {
-  // TODO: Update donor in database
-  // TODO: Recalculate metrics if needed
-  // TODO: Return updated donor
+export async function createDonor({ donorData, organizationId }) {
+  const {
+    type,
+    firstName,
+    lastName,
+    organizationName,
+    email,
+    phone,
+    address,
+    city,
+    state,
+    zipCode,
+    status,
+    preferredContactMethod,
+    tags,
+    retentionRisk,
+  } = donorData
+
+  const normalizedFirstName = type === 'organization' ? (organizationName || '') : (firstName || '')
+  const normalizedLastName = type === 'organization' ? '' : (lastName || '')
+
+  const donor = await prisma.donor.create({
+    data: {
+      organizationId,
+      firstName: normalizedFirstName.trim(),
+      lastName: normalizedLastName.trim(),
+      email: email ? String(email).trim() : null,
+      phone: phone ? String(phone).trim() : null,
+      address: address ? String(address).trim() : null,
+      city: city ? String(city).trim() : null,
+      state: state ? String(state).trim() : null,
+      zipCode: zipCode ? String(zipCode).trim() : null,
+      status: (status && String(status).toUpperCase()) || 'ACTIVE',
+      preferredContactMethod: preferredContactMethod ? String(preferredContactMethod) : null,
+      tags: tags ? String(tags) : null,
+      retentionRisk: retentionRisk || 'UNKNOWN',
+    },
+  })
+
+  return donor
 }
 
-/**
- * TODO: Delete a donor
- * @param {Object} params - Delete parameters (id, organizationId)
- */
-export async function deleteDonor(params) {
-  // TODO: Delete donor and related data
-  // TODO: Handle cascade deletes appropriately
+export async function updateDonor({ id, data }) {
+  if (!id) throw new Error('Missing donor id')
+
+  const updateData = {}
+  for (const [key, value] of Object.entries(data || {})) {
+    if (value === undefined) continue
+    if (value === null) {
+      updateData[key] = null
+      continue
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed === '' && ['email', 'phone', 'address', 'city', 'state', 'zipCode'].includes(key)) {
+        updateData[key] = null
+      } else {
+        updateData[key] = trimmed
+      }
+    } else {
+      updateData[key] = value
+    }
+  }
+
+  const updated = await prisma.donor.update({ where: { id }, data: updateData })
+  return updated
 }
 
-/**
- * TODO: Update donor metrics after donation changes
- * @param {string} donorId - Donor ID to update metrics for
- */
+export async function deleteDonor({ id }) {
+  if (!id) throw new Error('Missing donor id')
+  if (prisma.donation && typeof prisma.donation.deleteMany === 'function') {
+    await prisma.donation.deleteMany({ where: { donorId: id } })
+  }
+  await prisma.donor.delete({ where: { id } })
+  return true
+}
+
 export async function updateDonorMetrics(donorId) {
-  // Calculate donation metrics and update donor record
   const donations = await prisma.donation.findMany({ where: { donorId } })
   const totalGifts = donations.length
   const totalAmount = donations.reduce((sum, d) => sum + (d.amount || 0), 0)
@@ -58,7 +131,6 @@ export async function updateDonorMetrics(donorId) {
     lastGiftDate = latest.receivedAt
   }
 
-  // Determine retention risk based on last gift date
   let retentionRisk = 'UNKNOWN'
   if (lastGiftDate) {
     const msPerDay = 24 * 60 * 60 * 1000
