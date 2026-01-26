@@ -17,7 +17,7 @@ export default function Page() {
                     user-friendly experience.
                 </p>
 
-                <nav className="flex justify-center gap-16">
+                <nav className="flex justify-center gap-8">
                     <a
                         href="/register"
                         className="inline-flex items-center px-6 py-3 bg-sky-600 text-white rounded-md shadow hover:bg-sky-700"

@@ -101,7 +101,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <Card className="max-w-3xl mx-auto py-12">
+    <Card className="max-w-6xl w-full mx-auto py-20 px-8 min-h-[80vh]">
       <CardHeader>
         <CardTitle>Find your organization</CardTitle>
         <CardDescription>
