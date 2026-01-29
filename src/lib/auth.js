@@ -8,7 +8,7 @@ import { hashPassword, verifyPassword } from './password'
  * @returns {Promise<Object>} Created user object (password omitted)
  */
 export async function register(userData) {
-  const { firstName, lastName, email: rawEmail, password, organizationId, organizationName } = userData || {}
+  const { firstName, lastName, email: rawEmail, password, organizationId } = userData || {}
 
   if (!firstName || !lastName || !rawEmail || !password) {
     const err = new Error('Missing required fields')
@@ -26,11 +26,13 @@ export async function register(userData) {
 
   const hashed = await hashPassword(password)
 
-  let orgId = organizationId
-  if (!orgId) {
-    const org = await prisma.organization.create({ data: { name: organizationName || `${firstName} ${lastName}` } })
-    orgId = org.id
+  if (!organizationId) {
+    const err = new Error('organizationId is required')
+    err.code = 'VALIDATION_ERROR'
+    throw err
   }
+
+  const orgId = organizationId
 
   const user = await prisma.user.create({
     data: {
